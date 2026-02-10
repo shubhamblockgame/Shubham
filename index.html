@@ -1,40 +1,118 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Shubham's Block Game</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Shubham Block</title>
 
 <style>
-body{margin:0;background:#3f5593;font-family:sans-serif;color:#fff;text-align:center}
-.top{display:flex;justify-content:space-between;padding:14px;max-width:420px;margin:auto}
+*{box-sizing:border-box;font-family:system-ui}
+body{
+ margin:0;
+ background:#425a94;
+ color:#fff;
+ text-align:center;
+ overflow:hidden;
+ user-select:none;
+}
+
+.top{
+ display:flex;
+ justify-content:space-between;
+ padding:14px 20px;
+ font-weight:800;
+ font-size:18px;
+}
+
+.board-wrap{
+ display:flex;
+ justify-content:center;
+ margin-top:6px;
+}
+
 .board{
- width:320px;margin:14px auto;padding:12px;
- background:#1b2646;border-radius:18px;
- display:grid;grid-template-columns:repeat(10,1fr);gap:6px;
- box-shadow:0 0 0 2px #6fd3ff inset
+ width:330px;
+ padding:14px;
+ background:#0e1733;
+ border-radius:24px;
+ display:grid;
+ grid-template-columns:repeat(10,1fr);
+ gap:6px;
+ box-shadow:
+ 0 0 0 3px #6fd8ff inset,
+ 0 0 28px rgba(120,220,255,.9);
 }
-.cell{aspect-ratio:1;background:#0f1830;border-radius:6px}
-.filled{box-shadow:inset 0 2px 4px rgba(255,255,255,.35)}
-.orange{background:linear-gradient(#ffb25f,#ff7a18)}
-.blue{background:linear-gradient(#5fa7ff,#356bff)}
-.green{background:linear-gradient(#6dff9a,#26b864)}
-.purple{background:linear-gradient(#c28cff,#7a4cff)}
-.bottom{display:flex;justify-content:center;gap:36px;margin:32px 0}
-.piece{display:grid;gap:4px;touch-action:none}
-.piece div{width:26px;height:26px;border-radius:6px}
-.dragging{position:fixed;z-index:999;pointer-events:none}
-.popup{
- position:fixed;inset:0;background:#0009;
- display:flex;align-items:center;justify-content:center
+
+.cell{
+ width:100%;
+ aspect-ratio:1;
+ background:#18244d;
+ border-radius:6px;
 }
+
+.filled{
+ background:var(--c);
+ box-shadow:
+ inset 0 3px 6px rgba(255,255,255,.5),
+ 0 0 6px rgba(0,0,0,.4);
+ animation:pop .15s ease;
+}
+
+@keyframes pop{
+ from{transform:scale(.7)}
+ to{transform:scale(1)}
+}
+
+.bottom{
+ display:flex;
+ justify-content:space-between;
+ padding:32px 36px;
+}
+
+.piece{
+ display:grid;
+ gap:4px;
+ touch-action:none;
+}
+
+.block{
+ width:26px;
+ height:26px;
+ border-radius:6px;
+ background:var(--c);
+ box-shadow:inset 0 3px 6px rgba(255,255,255,.5);
+}
+
+.modal{
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,.6);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ z-index:5;
+}
+
 .box{
- background:#2a3f7a;padding:26px;border-radius:20px;width:260px
+ background:#2f4577;
+ padding:24px;
+ width:260px;
+ border-radius:20px;
 }
+
 .btn{
- background:#5fa7ff;padding:14px;margin:12px 0;
- border-radius:14px;font-weight:bold
+ background:#5aa8ff;
+ padding:12px;
+ margin:12px 0;
+ border-radius:12px;
+ font-weight:800;
+ cursor:pointer;
+ transition:.15s;
 }
+
 .btn:active{transform:scale(.95)}
+
+.hidden{display:none}
 </style>
 </head>
 
@@ -42,138 +120,174 @@ body{margin:0;background:#3f5593;font-family:sans-serif;color:#fff;text-align:ce
 
 <div class="top">
  <div>👑 <span id="score">0</span></div>
- <div>LEVEL <span id="lvl">1</span></div>
+ <div>LEVEL <span id="level">1</span></div>
 </div>
 
-<div class="board" id="board"></div>
+<div class="board-wrap">
+ <div class="board" id="board"></div>
+</div>
+
 <div class="bottom" id="pieces"></div>
 
-<!-- Difficulty -->
-<div class="popup" id="diff">
+<div class="modal" id="difficulty">
  <div class="box">
-  <h2>Select Difficulty</h2>
+  <h3>Select Difficulty</h3>
   <div class="btn" onclick="start(1)">LOW</div>
   <div class="btn" onclick="start(2)">MEDIUM</div>
   <div class="btn" onclick="start(3)">HIGH</div>
  </div>
 </div>
 
-<!-- Game Over -->
-<div class="popup" id="over" style="display:none">
+<div class="modal hidden" id="gameover">
  <div class="box">
-  <h2>GAME OVER</h2>
-  <p>Score: <span id="finalScore"></span></p>
-  <p>Level: <span id="finalLevel"></span></p>
-  <div class="btn" onclick="replay()">REPLAY</div>
+  <h3>GAME OVER</h3>
+  <div class="btn" onclick="location.reload()">REPLAY</div>
  </div>
 </div>
 
-<audio id="place" src="https://assets.mixkit.co/sfx/preview/mixkit-click-1110.mp3"></audio>
-<audio id="overS" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.wav"></audio>
-
 <script>
-const board=document.getElementById("board");
-const pieces=document.getElementById("pieces");
-const grid=[];
-let score=0,level=1,diff=1;
-let shape,color,drag;
+/* ---------- SOUND (NO FILES) ---------- */
+const ctx=new AudioContext();
+function beep(freq,dur=.08){
+ const o=ctx.createOscillator();
+ const g=ctx.createGain();
+ o.frequency.value=freq;
+ o.connect(g); g.connect(ctx.destination);
+ o.start(); g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+dur);
+ o.stop(ctx.currentTime+dur);
+}
 
+/* ---------- GAME DATA ---------- */
+const board=document.getElementById("board");
+const piecesBox=document.getElementById("pieces");
+const scoreEl=document.getElementById("score");
+const levelEl=document.getElementById("level");
+const diffModal=document.getElementById("difficulty");
+const gameOver=document.getElementById("gameover");
+
+let grid=[],score=0,level=1,difficulty=1;
+
+const colors=["#7aff9c","#ff8b3d","#6da8ff","#b58bff"];
 const shapes=[
- {s:[[0,0],[1,0],[2,0]],c:"orange"},
- {s:[[0,0],[0,1],[0,2],[0,3]],c:"blue"},
- {s:[[0,0],[1,0],[0,1],[1,1]],c:"green"},
- {s:[[0,0],[1,0],[2,0],[1,1]],c:"purple"}
+ [[1,1,1,1]],
+ [[1],[1],[1]],
+ [[1,1],[1,1]],
+ [[1,1,1],[0,1,0]],
+ [[1,1,0],[0,1,1]]
 ];
 
+/* ---------- INIT BOARD ---------- */
 for(let i=0;i<100;i++){
- let d=document.createElement("div");
- d.className="cell";board.appendChild(d);grid.push(0);
+ const c=document.createElement("div");
+ c.className="cell";
+ board.appendChild(c);
+ grid.push(null);
 }
 
+/* ---------- START ---------- */
 function start(d){
- diff=d;
- document.getElementById("diff").style.display="none";
+ difficulty=d;
+ diffModal.classList.add("hidden");
  spawn();
 }
 
+/* ---------- SPAWN PIECES ---------- */
 function spawn(){
- pieces.innerHTML="";
- let playable=false;
+ piecesBox.innerHTML="";
  for(let i=0;i<3;i++){
-  let o=shapes[Math.floor(Math.random()*shapes.length)];
-  let p=document.createElement("div");p.className="piece";
-  o.s.forEach(()=>{let b=document.createElement("div");b.className=o.c;p.appendChild(b)});
-  p.onpointerdown=e=>dragStart(e,o);
-  pieces.appendChild(p);
-  if(canAny(o.s)) playable=true;
+  const s=shapes[Math.floor(Math.random()*shapes.length)];
+  const col=colors[Math.floor(Math.random()*colors.length)];
+  createPiece(s,col);
  }
- if(!playable) gameOver();
 }
 
-function dragStart(e,o){
- drag=e.target.closest(".piece").cloneNode(true);
- drag.classList.add("dragging");document.body.appendChild(drag);
- shape=o.s;color=o.c;
- move(e);
- document.onpointermove=move;
- document.onpointerup=end;
+/* ---------- CREATE PIECE ---------- */
+function createPiece(shape,color){
+ const p=document.createElement("div");
+ p.className="piece";
+ p.shape=shape;
+ p.color=color;
+ p.style.setProperty("--c",color);
+
+ shape.forEach(r=>r.forEach(v=>{
+  if(v){
+   const b=document.createElement("div");
+   b.className="block";
+   p.appendChild(b);
+  }
+ }));
+
+ let ox,oy;
+ p.onpointerdown=e=>{
+  beep(400);
+  ox=e.clientX; oy=e.clientY;
+  document.onpointermove=ev=>{
+   p.style.position="fixed";
+   p.style.left=ev.clientX-ox+"px";
+   p.style.top=ev.clientY-oy+"px";
+  };
+  document.onpointerup=ev=>{
+   document.onpointermove=null;
+   document.onpointerup=null;
+   drop(p,ev.clientX,ev.clientY);
+  };
+ };
+
+ piecesBox.appendChild(p);
 }
 
-function move(e){
- drag.style.left=e.clientX-30+"px";
- drag.style.top=e.clientY-30+"px";
-}
+/* ---------- DROP ---------- */
+function drop(p,x,y){
+ const r=board.getBoundingClientRect();
+ const size=r.width/10;
+ const gx=Math.floor((x-r.left)/size);
+ const gy=Math.floor((y-r.top)/size);
 
-function end(e){
- document.onpointermove=null;document.onpointerup=null;
- let cell=document.elementFromPoint(e.clientX,e.clientY);
- if(cell&&cell.classList.contains("cell")){
-  let idx=[...board.children].indexOf(cell);
-  if(can(idx)) place(idx);
+ if(canPlace(p.shape,gx,gy)){
+  place(p.shape,p.color,gx,gy);
+  beep(800);
+  p.remove();
+  score+=10*difficulty;
+  scoreEl.textContent=score;
+  if(!piecesBox.children.length){
+   level++; levelEl.textContent=level;
+   spawn();
+  }
+ }else{
+  p.style.position="";
  }
- drag.remove();
 }
 
-function can(idx){
- return shape.every(s=>{
-  let x=idx%10+s[0],y=Math.floor(idx/10)+s[1];
-  return x<10&&y<10&&grid[y*10+x]==0;
+/* ---------- LOGIC ---------- */
+function canPlace(s,x,y){
+ for(let r=0;r<s.length;r++)
+  for(let c=0;c<s[r].length;c++)
+   if(s[r][c]){
+    const i=(y+r)*10+(x+c);
+    if(x+c<0||y+r<0||x+c>=10||y+r>=10||grid[i]) return false;
+   }
+ return true;
+}
+
+function place(s,color,x,y){
+ s.forEach((r,ri)=>r.forEach((v,ci)=>{
+  if(v){
+   const i=(y+ri)*10+(x+ci);
+   grid[i]=color;
+   board.children[i].classList.add("filled");
+   board.children[i].style.setProperty("--c",color);
+  }
+ }));
+ checkOver();
+}
+
+function checkOver(){
+ let ok=false;
+ [...piecesBox.children].forEach(p=>{
+  for(let y=0;y<10;y++)for(let x=0;x<10;x++)
+   if(canPlace(p.shape,x,y)) ok=true;
  });
-}
-
-function canAny(s){
- for(let i=0;i<100;i++){
-  if(s.every(p=>{
-   let x=i%10+p[0],y=Math.floor(i/10)+p[1];
-   return x<10&&y<10&&grid[y*10+x]==0;
-  })) return true;
- }
- return false;
-}
-
-function place(idx){
- shape.forEach(s=>{
-  let i=(Math.floor(idx/10)+s[1])*10+(idx%10+s[0]);
-  grid[i]=1;
-  board.children[i].className="cell filled "+color;
- });
- score+=10*diff;
- document.getElementById("score").innerText=score;
- document.getElementById("place").play();
- if(score>level*300){level++;document.getElementById("lvl").innerText=level}
- spawn();
-}
-
-function gameOver(){
- document.getElementById("over").style.display="flex";
- document.getElementById("finalScore").innerText=score;
- document.getElementById("finalLevel").innerText=level;
- document.getElementById("overS").play();
- navigator.vibrate(200);
-}
-
-function replay(){
- location.reload();
+ if(!ok) gameOver.classList.remove("hidden");
 }
 </script>
 </body>
