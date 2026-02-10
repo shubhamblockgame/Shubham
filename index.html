@@ -1,189 +1,241 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shubham's Block Game</title>
 
 <style>
 body{
   margin:0;
-  background:#3f5fa5;
-  font-family:Arial, sans-serif;
-  color:white;
-  user-select:none;
+  background:#3f5593;
+  color:#fff;
+  font-family:system-ui;
+  text-align:center;
 }
-#app{
+.top{
   max-width:420px;
   margin:auto;
-  padding:10px;
-}
-.header{
+  padding:14px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:10px;
 }
-.score{
-  font-size:48px;
-  font-weight:bold;
+.score{font-size:40px;font-weight:900}
+.level{font-size:14px;opacity:.8}
+
+.board-wrap{
+  position:relative;
+  margin:auto;
+  width:340px;
 }
-.crown{
-  font-size:20px;
+.board-wrap:before{
+  content:"";
+  position:absolute;
+  inset:-8px;
+  border:3px dotted #6fe7ff;
+  border-radius:18px;
+  animation:glow 2s infinite;
 }
+@keyframes glow{0%{opacity:.4}50%{opacity:1}100%{opacity:.4}}
+
 .board{
+  background:#1e2a4a;
+  padding:12px;
   display:grid;
   grid-template-columns:repeat(10,1fr);
-  gap:4px;
-  background:#1f2f4a;
-  padding:6px;
+  gap:6px;
   border-radius:14px;
 }
 .cell{
-  width:100%;
   aspect-ratio:1;
-  background:#0e1a2e;
+  background:#0f1830;
   border-radius:6px;
 }
 .filled{
-  box-shadow: inset -3px -3px 6px rgba(0,0,0,.4),
-              inset 3px 3px 6px rgba(255,255,255,.3);
+  animation:pop .15s ease;
+  box-shadow:inset 0 2px 3px rgba(255,255,255,.3),
+             inset 0 -3px 5px rgba(0,0,0,.5);
 }
-.blue{background:linear-gradient(145deg,#4fa3ff,#2f6bff);}
-.purple{background:linear-gradient(145deg,#b36bff,#7b3fff);}
-.orange{background:linear-gradient(145deg,#ffb14f,#ff7b1f);}
-.green{background:linear-gradient(145deg,#5dff8a,#1fbf5a);}
+@keyframes pop{from{transform:scale(.7)}to{transform:scale(1)}}
 
-.tray{
+.purple{background:linear-gradient(#b07cff,#7c4fdc)}
+.blue{background:linear-gradient(#5fa7ff,#356bff)}
+.orange{background:linear-gradient(#ffb25f,#ff7a18)}
+.green{background:linear-gradient(#6dff9a,#26b864)}
+
+.bottom{
+  margin:26px auto;
   display:flex;
-  justify-content:space-between;
-  margin-top:20px;
+  justify-content:center;
+  gap:36px;
 }
 .piece{
   display:grid;
   gap:4px;
 }
-.block{
-  width:26px;
-  height:26px;
-  border-radius:6px;
+.piece div{
+  width:24px;
+  aspect-ratio:1;
+  border-radius:5px;
 }
 
-#overlay{
+.overlay{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.7);
+  background:rgba(0,0,0,.6);
   display:flex;
   justify-content:center;
   align-items:center;
-  z-index:10;
 }
-.menu{
-  background:#2b3f6f;
-  padding:20px;
-  border-radius:16px;
-  text-align:center;
+.popup{
+  background:#2f4578;
+  padding:26px;
+  border-radius:18px;
+  width:280px;
+  animation:scale .25s ease;
 }
-.menu button{
+@keyframes scale{from{transform:scale(.7)}to{transform:scale(1)}}
+.popup button{
+  margin-top:14px;
   width:100%;
   padding:12px;
-  margin-top:10px;
   border:none;
-  border-radius:10px;
-  font-size:18px;
-  background:#4fa3ff;
-  color:white;
+  border-radius:12px;
+  background:#5aa7ff;
+  color:#fff;
+  font-weight:700;
 }
-.hidden{display:none;}
 </style>
 </head>
 
 <body>
-<div id="app">
-  <div class="header">
-    <div class="crown">👑 <span id="best">0</span></div>
+
+<div class="top">
+  <div>👑 <span id="best">0</span></div>
+  <div>
     <div class="score" id="score">0</div>
-    <div>⚙️</div>
+    <div class="level" id="level">LEVEL 1</div>
   </div>
-
-  <div class="board" id="board"></div>
-
-  <div class="tray" id="tray"></div>
+  ⚙️
 </div>
 
-<!-- MENU -->
-<div id="overlay">
-  <div class="menu">
-    <h2>Select Difficulty</h2>
-    <button onclick="startGame('low')">LOW</button>
-    <button onclick="startGame('medium')">MEDIUM</button>
-    <button onclick="startGame('high')">HIGH</button>
+<div class="board-wrap">
+  <div class="board" id="board"></div>
+</div>
+
+<div class="bottom" id="pieces"></div>
+
+<div class="overlay" id="gameOver" style="display:none">
+  <div class="popup">
+    <h2>Game Over</h2>
+    <p>Score: <b id="final"></b></p>
+    <button onclick="resetGame()">Replay</button>
   </div>
 </div>
 
 <script>
 const board=document.getElementById("board");
-const tray=document.getElementById("tray");
-const scoreEl=document.getElementById("score");
-const bestEl=document.getElementById("best");
-const overlay=document.getElementById("overlay");
+const piecesWrap=document.getElementById("pieces");
+let grid=[],score=0,level=1;
+let best=localStorage.best||0;
+document.getElementById("best").innerText=best;
 
-let grid=[], score=0, difficulty="low";
+const easy=[
+ [[0,0],[1,0],[0,1],[1,1]],
+ [[0,0],[1,0],[2,0]]
+];
+const hard=[
+ [[0,0],[1,0],[2,0],[1,1]],
+ [[0,0],[0,1],[1,1]],
+ [[1,0],[0,1],[1,1],[2,1]]
+];
+const colors=["purple","blue","orange","green"];
 
-const colors=["blue","purple","orange","green"];
-const shapes={
-  low:[[[1,1]],[[1,1,1]],[[1,1],[1,1]]],
-  medium:[[[1,1,1],[0,1,0]],[[1,1],[1,0],[1,0]]],
-  high:[[[1,1,1],[1,0,0],[1,0,0]],[[1,1,1],[0,0,1]]]
-};
+function vibrate(x){navigator.vibrate&&navigator.vibrate(x)}
 
-function startGame(diff){
-  difficulty=diff;
-  overlay.classList.add("hidden");
-  init();
-}
-
-function init(){
+function buildBoard(){
   board.innerHTML="";
   grid=[];
-  score=0;
-  scoreEl.textContent=0;
   for(let i=0;i<100;i++){
     const c=document.createElement("div");
     c.className="cell";
     board.appendChild(c);
-    grid.push(null);
+    grid.push(0);
   }
-  spawnPieces();
 }
 
 function spawnPieces(){
-  tray.innerHTML="";
+  piecesWrap.innerHTML="";
   for(let i=0;i<3;i++){
-    const shape=shapes[difficulty][Math.floor(Math.random()*shapes[difficulty].length)];
-    const color=colors[Math.floor(Math.random()*colors.length)];
-    const p=document.createElement("div");
-    p.className="piece";
-    p.dataset.shape=JSON.stringify(shape);
-    p.dataset.color=color;
-    shape.forEach(r=>{
-      r.forEach(v=>{
-        if(v){
-          const b=document.createElement("div");
-          b.className="block "+color;
-          p.appendChild(b);
-        }
-      })
-    });
-    p.draggable=true;
-    tray.appendChild(p);
+    const piece=document.createElement("div");
+    piece.className="piece";
+    const shape=(level<4?easy:easy.concat(hard))
+      [Math.floor(Math.random()*(level<4?easy.length:easy.length+hard.length))];
+    const color=colors[Math.floor(Math.random()*4)];
+    shape.forEach(()=>{const d=document.createElement("div");d.className=color;piece.appendChild(d)});
+    piece.onclick=()=>place(shape,color);
+    piecesWrap.appendChild(piece);
   }
 }
 
-function restart(){
-  overlay.classList.remove("hidden");
+function place(shape,color){
+  for(let i=0;i<100;i++){
+    if(shape.every(s=>{
+      const x=i%10+s[0],y=Math.floor(i/10)+s[1];
+      return x<10&&y<10&&grid[y*10+x]==0;
+    })){
+      shape.forEach(s=>{
+        const idx=(Math.floor(i/10)+s[1])*10+(i%10+s[0]);
+        grid[idx]=1;
+        board.children[idx].classList.add("filled",color);
+      });
+      score+=10;
+      document.getElementById("score").innerText=score;
+      vibrate(30);
+      checkClear();
+      checkLevel();
+      spawnPieces();
+      return;
+    }
+  }
+  gameOver();
 }
 
+function checkClear(){
+  for(let r=0;r<10;r++){
+    if([...Array(10)].every((_,c)=>grid[r*10+c])){
+      for(let c=0;c<10;c++){grid[r*10+c]=0;board.children[r*10+c].className="cell"}
+      score+=50;vibrate(80);
+    }
+  }
+}
+
+function checkLevel(){
+  if(score>=level*500){
+    level++;
+    document.getElementById("level").innerText="LEVEL "+level;
+    vibrate(120);
+  }
+}
+
+function gameOver(){
+  document.getElementById("final").innerText=score;
+  if(score>best){best=score;localStorage.best=best}
+  document.getElementById("best").innerText=best;
+  document.getElementById("gameOver").style.display="flex";
+}
+
+function resetGame(){
+  score=0;level=1;
+  document.getElementById("score").innerText=0;
+  document.getElementById("level").innerText="LEVEL 1";
+  document.getElementById("gameOver").style.display="none";
+  buildBoard();spawnPieces();
+}
+
+buildBoard();spawnPieces();
 </script>
+
 </body>
 </html>
