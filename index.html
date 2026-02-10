@@ -2,265 +2,188 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>Shubham Block</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Shubham's Block Game</title>
 
 <style>
 body{
   margin:0;
-  background:linear-gradient(180deg,#3b5bdc,#1e2a4f);
-  font-family:Arial,Helvetica,sans-serif;
-  color:#fff;
-  text-align:center;
-  touch-action:none;
+  background:#3f5fa5;
+  font-family:Arial, sans-serif;
+  color:white;
+  user-select:none;
 }
-header{padding:10px 0 6px;}
-header h1{margin:0;font-size:18px;letter-spacing:1px;}
-#score{font-size:42px;font-weight:bold;}
-#sub{font-size:12px;opacity:.75}
+#app{
+  max-width:420px;
+  margin:auto;
+  padding:10px;
+}
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+.score{
+  font-size:48px;
+  font-weight:bold;
+}
+.crown{
+  font-size:20px;
+}
+.board{
+  display:grid;
+  grid-template-columns:repeat(10,1fr);
+  gap:4px;
+  background:#1f2f4a;
+  padding:6px;
+  border-radius:14px;
+}
+.cell{
+  width:100%;
+  aspect-ratio:1;
+  background:#0e1a2e;
+  border-radius:6px;
+}
+.filled{
+  box-shadow: inset -3px -3px 6px rgba(0,0,0,.4),
+              inset 3px 3px 6px rgba(255,255,255,.3);
+}
+.blue{background:linear-gradient(145deg,#4fa3ff,#2f6bff);}
+.purple{background:linear-gradient(145deg,#b36bff,#7b3fff);}
+.orange{background:linear-gradient(145deg,#ffb14f,#ff7b1f);}
+.green{background:linear-gradient(145deg,#5dff8a,#1fbf5a);}
 
-canvas{
-  display:block;
-  margin:8px auto;
-  background:linear-gradient(180deg,#24366b,#17224a);
-  border-radius:18px;
-  box-shadow:0 10px 30px rgba(0,0,0,.4);
+.tray{
+  display:flex;
+  justify-content:space-between;
+  margin-top:20px;
 }
+.piece{
+  display:grid;
+  gap:4px;
+}
+.block{
+  width:26px;
+  height:26px;
+  border-radius:6px;
+}
+
+#overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.7);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:10;
+}
+.menu{
+  background:#2b3f6f;
+  padding:20px;
+  border-radius:16px;
+  text-align:center;
+}
+.menu button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:10px;
+  font-size:18px;
+  background:#4fa3ff;
+  color:white;
+}
+.hidden{display:none;}
 </style>
 </head>
 
 <body>
+<div id="app">
+  <div class="header">
+    <div class="crown">👑 <span id="best">0</span></div>
+    <div class="score" id="score">0</div>
+    <div>⚙️</div>
+  </div>
 
-<header>
-  <h1>Shubham Block</h1>
-  <div id="score">💎 0</div>
-  <div id="sub">Best: <span id="best">0</span></div>
-</header>
+  <div class="board" id="board"></div>
 
-<canvas id="game"></canvas>
+  <div class="tray" id="tray"></div>
+</div>
+
+<!-- MENU -->
+<div id="overlay">
+  <div class="menu">
+    <h2>Select Difficulty</h2>
+    <button onclick="startGame('low')">LOW</button>
+    <button onclick="startGame('medium')">MEDIUM</button>
+    <button onclick="startGame('high')">HIGH</button>
+  </div>
+</div>
 
 <script>
-/* ================= BASIC ================= */
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
-const SIZE=10;
-const CELL=Math.floor(Math.min(window.innerWidth,420)/SIZE);
-canvas.width=CELL*SIZE;
-canvas.height=CELL*SIZE+160;
+const board=document.getElementById("board");
+const tray=document.getElementById("tray");
+const scoreEl=document.getElementById("score");
+const bestEl=document.getElementById("best");
+const overlay=document.getElementById("overlay");
 
-let score=0;
-let best=localStorage.getItem("sb_best")||0;
-document.getElementById("best").innerText=best;
+let grid=[], score=0, difficulty="low";
 
-let grid=Array(SIZE*SIZE).fill(null);
-let combo=0,comboText="",comboTimer=0;
+const colors=["blue","purple","orange","green"];
+const shapes={
+  low:[[[1,1]],[[1,1,1]],[[1,1],[1,1]]],
+  medium:[[[1,1,1],[0,1,0]],[[1,1],[1,0],[1,0]]],
+  high:[[[1,1,1],[1,0,0],[1,0,0]],[[1,1,1],[0,0,1]]]
+};
 
-/* ================= SOUND ================= */
-const AC=window.AudioContext||window.webkitAudioContext;
-const audio=new AC();
-function beep(f=600,d=.08){
-  const o=audio.createOscillator(),g=audio.createGain();
-  o.connect(g); g.connect(audio.destination);
-  o.frequency.value=f; o.start();
-  g.gain.setValueAtTime(.15,audio.currentTime);
-  g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);
-  o.stop(audio.currentTime+d);
+function startGame(diff){
+  difficulty=diff;
+  overlay.classList.add("hidden");
+  init();
 }
 
-/* ================= DATA ================= */
-const COLORS=["#4da3ff","#facc15","#a855f7","#22c55e","#fb923c"];
-const SHAPES=[
- [[1,1,1],[0,1,0]],
- [[1,1],[1,1]],
- [[1,1,1,1]],
- [[1,0],[1,0],[1,1]],
- [[0,1],[1,1],[1,0]]
-];
-
-let pieces=[],dragging=null,ox=0,oy=0,ghost=null,particles=[];
-
-/* ================= PIECES ================= */
-function smartShape(){
-  // prefer smaller shapes if board tight
-  const filled=grid.filter(v=>v).length;
-  if(filled>60) return SHAPES[Math.floor(Math.random()*2)];
-  return SHAPES[Math.floor(Math.random()*SHAPES.length)];
+function init(){
+  board.innerHTML="";
+  grid=[];
+  score=0;
+  scoreEl.textContent=0;
+  for(let i=0;i<100;i++){
+    const c=document.createElement("div");
+    c.className="cell";
+    board.appendChild(c);
+    grid.push(null);
+  }
+  spawnPieces();
 }
 
-function newPieces(){
-  pieces=[];
+function spawnPieces(){
+  tray.innerHTML="";
   for(let i=0;i<3;i++){
-    pieces.push({
-      shape:smartShape(),
-      color:COLORS[Math.floor(Math.random()*COLORS.length)],
-      x:CELL*(i*3+2),
-      y:CELL*SIZE+35,
-      hx:CELL*(i*3+2),
-      hy:CELL*SIZE+35
-    });
-  }
-}
-
-/* ================= DRAW ================= */
-function glossy(x,y,c){
-  const g=ctx.createLinearGradient(x,y,x,y+CELL);
-  g.addColorStop(0,"#ffffff66");
-  g.addColorStop(.4,c);
-  g.addColorStop(1,"#00000055");
-  ctx.fillStyle=g;
-  ctx.fillRect(x+3,y+3,CELL-6,CELL-6);
-}
-
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // board
-  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
-    const i=y*SIZE+x;
-    ctx.fillStyle=grid[i]||"#0f1738";
-    ctx.fillRect(x*CELL+2,y*CELL+2,CELL-4,CELL-4);
-  }
-
-  // particles
-  particles.forEach(p=>{
-    ctx.globalAlpha=p.a;
-    glossy(p.x*CELL,p.y*CELL,p.c);
-    p.a-=.08;
-  });
-  particles=particles.filter(p=>p.a>0);
-  ctx.globalAlpha=1;
-
-  // ghost
-  if(ghost){
-    ctx.globalAlpha=.35;
-    ghost.cells.forEach(i=>{
-      glossy((i%SIZE)*CELL,(i/SIZE|0)*CELL,ghost.color);
-    });
-    ctx.globalAlpha=1;
-  }
-
-  // pieces
-  pieces.forEach(p=>{
-    p.shape.forEach((r,ry)=>r.forEach((v,rx)=>{
-      if(v) glossy(p.x+rx*CELL,p.y+ry*CELL,p.color);
-    }));
-  });
-
-  // combo text
-  if(comboTimer>0){
-    ctx.font="bold 26px Arial";
-    ctx.fillStyle="#fff";
-    ctx.fillText(comboText,canvas.width/2-40,canvas.height/2);
-    comboTimer--;
-  }
-}
-
-/* ================= LOGIC ================= */
-function canPlace(shape,gx,gy){
-  let cells=[];
-  for(let r=0;r<shape.length;r++)for(let c=0;c<shape[r].length;c++){
-    if(shape[r][c]){
-      let nx=gx+c,ny=gy+r;
-      if(nx<0||ny<0||nx>=SIZE||ny>=SIZE) return null;
-      let id=ny*SIZE+nx;
-      if(grid[id]) return null;
-      cells.push(id);
-    }
-  }
-  return cells;
-}
-
-function placePiece(p,cells){
-  cells.forEach(i=>grid[i]=p.color);
-  score+=cells.length*10;
-  beep(700); navigator.vibrate?.(40);
-  clearLines();
-  updateScore();
-}
-
-function clearLines(){
-  let cleared=0;
-  for(let i=0;i<SIZE;i++){
-    let row=true,col=true;
-    for(let j=0;j<SIZE;j++){
-      if(!grid[i*SIZE+j]) row=false;
-      if(!grid[j*SIZE+i]) col=false;
-    }
-    if(row){for(let j=0;j<SIZE;j++){particles.push({x:j,y:i,c:grid[i*SIZE+j],a:1});grid[i*SIZE+j]=null;}cleared++;}
-    if(col){for(let j=0;j<SIZE;j++){particles.push({x:i,y:j,c:grid[j*SIZE+i],a:1});grid[j*SIZE+i]=null;}cleared++;}
-  }
-  if(cleared){
-    combo++;
-    let bonus=cleared*100*combo;
-    score+=bonus;
-    comboText=combo>2?"🔥 MEGA!":"x"+combo;
-    comboTimer=30;
-    beep(900);
-    navigator.vibrate?.(80);
-  }else combo=0;
-}
-
-function updateScore(){
-  document.getElementById("score").innerHTML="💎 "+score;
-  if(score>best){
-    best=score;
-    localStorage.setItem("sb_best",best);
-    document.getElementById("best").innerText=best;
-  }
-}
-
-function hasMove(){
-  for(let p of pieces)
-    for(let y=0;y<SIZE;y++)
-      for(let x=0;x<SIZE;x++)
-        if(canPlace(p.shape,x,y)) return true;
-  return false;
-}
-
-/* ================= DRAG ================= */
-canvas.onpointerdown=e=>{
-  const mx=e.offsetX,my=e.offsetY;
-  pieces.forEach(p=>{
-    p.shape.forEach((r,ry)=>r.forEach((v,rx)=>{
-      if(v){
-        let x=p.x+rx*CELL,y=p.y+ry*CELL;
-        if(mx>x&&mx<x+CELL&&my>y&&my<y+CELL){
-          dragging=p; ox=mx-p.x; oy=my-p.y;
+    const shape=shapes[difficulty][Math.floor(Math.random()*shapes[difficulty].length)];
+    const color=colors[Math.floor(Math.random()*colors.length)];
+    const p=document.createElement("div");
+    p.className="piece";
+    p.dataset.shape=JSON.stringify(shape);
+    p.dataset.color=color;
+    shape.forEach(r=>{
+      r.forEach(v=>{
+        if(v){
+          const b=document.createElement("div");
+          b.className="block "+color;
+          p.appendChild(b);
         }
-      }
-    }));
-  });
-};
-
-canvas.onpointermove=e=>{
-  if(!dragging) return;
-  dragging.x=e.offsetX-ox;
-  dragging.y=e.offsetY-oy;
-  let gx=Math.round(dragging.x/CELL),gy=Math.round(dragging.y/CELL);
-  let cells=canPlace(dragging.shape,gx,gy);
-  ghost=cells?{cells,color:dragging.color}:null;
-};
-
-canvas.onpointerup=e=>{
-  if(!dragging) return;
-  let gx=Math.round(dragging.x/CELL),gy=Math.round(dragging.y/CELL);
-  let cells=canPlace(dragging.shape,gx,gy);
-  if(cells){
-    placePiece(dragging,cells);
-    pieces=pieces.filter(p=>p!==dragging);
-    if(pieces.length===0) newPieces();
-    if(!hasMove()) setTimeout(()=>alert("Game Over\nScore: "+score),120);
-  }else{
-    dragging.x=dragging.hx; dragging.y=dragging.hy;
-    beep(200); navigator.vibrate?.(20);
+      })
+    });
+    p.draggable=true;
+    tray.appendChild(p);
   }
-  dragging=null; ghost=null;
-};
+}
 
-/* ================= LOOP ================= */
-newPieces();
-(function loop(){ draw(); requestAnimationFrame(loop); })();
+function restart(){
+  overlay.classList.remove("hidden");
+}
+
 </script>
-
 </body>
 </html>
