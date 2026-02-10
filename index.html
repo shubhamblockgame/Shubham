@@ -2,285 +2,303 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Shubham Block Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shubham's Block Game</title>
 
 <style>
+:root{
+  --bg:#425a92;
+  --grid:#1e2a4a;
+  --cell:#24345c;
+  --glow:#6fd3ff;
+}
+*{box-sizing:border-box;font-family:sans-serif;}
 body{
   margin:0;
-  background:#3f568f;
-  font-family:system-ui;
+  background:var(--bg);
   color:#fff;
-  text-align:center;
-  user-select:none;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
 }
-.header{
+
+header{
+  width:100%;
   display:flex;
   justify-content:space-between;
-  padding:12px 20px;
-  font-weight:700;
+  padding:14px 20px;
+  font-weight:bold;
 }
-.board{
-  margin:10px auto;
-  background:#1e2a4f;
-  padding:12px;
-  border-radius:18px;
-  box-shadow:0 0 25px #6fe6ff;
-  width:max-content;
+#score{font-size:20px;}
+#level{opacity:.9}
+
+#board{
+  margin-top:10px;
+  padding:10px;
+  background:var(--grid);
+  border-radius:20px;
+  box-shadow:0 0 20px var(--glow);
 }
 .grid{
   display:grid;
-  grid-template-columns:repeat(10,36px);
-  grid-template-rows:repeat(10,36px);
-  gap:5px;
+  grid-template-columns:repeat(10,1fr);
+  gap:6px;
 }
 .cell{
-  width:36px;height:36px;
-  background:#22335f;
+  width:28px;
+  height:28px;
   border-radius:8px;
+  background:var(--cell);
 }
-.cell.filled{
-  box-shadow:inset -4px -4px 6px rgba(255,255,255,.25);
-}
-.cell.ghost{
-  outline:2px dashed #fff;
-  opacity:.45;
-}
-.shapes{
+.cell.filled{background:var(--fill);}
+.cell.ghost{opacity:.35;}
+
+#shapes{
   display:flex;
-  justify-content:space-around;
-  margin:35px 10px;
+  justify-content:space-between;
+  width:90%;
+  margin-top:25px;
 }
 .shape{
-  position:relative;
   display:grid;
-  gap:5px;
+  gap:4px;
+  touch-action:none;
 }
 .block{
-  width:36px;height:36px;
-  border-radius:8px;
-  box-shadow:inset -4px -4px 6px rgba(255,255,255,.3);
+  width:26px;
+  height:26px;
+  border-radius:7px;
+  background:var(--c);
 }
-.c1{background:#9b5cff;}
-.c2{background:#ff9f43;}
-.c3{background:#54a0ff;}
-.c4{background:#2ecc71;}
-
-.drag-clone{
+.dragging{
   position:fixed;
   pointer-events:none;
-  opacity:.9;
   z-index:999;
 }
-.overlay{
+
+#overlay{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.6);
+  background:rgba(0,0,0,.7);
   display:none;
   align-items:center;
   justify-content:center;
 }
-.popup{
-  background:#22335f;
-  padding:25px;
-  border-radius:16px;
+#gameover{
+  background:#24345c;
+  padding:30px;
+  border-radius:20px;
+  text-align:center;
 }
-.popup button{
+button{
   margin-top:15px;
-  padding:10px 22px;
+  padding:12px 25px;
   border:none;
-  border-radius:10px;
-  font-size:16px;
+  border-radius:12px;
+  font-size:18px;
 }
 </style>
 </head>
 
 <body>
-<div class="header">
-  <div>👑 <span id="score">0</span></div>
-  <div>LEVEL 1</div>
+
+<header>
+  <div id="score">👑 0</div>
+  <div id="level">LEVEL 1</div>
+</header>
+
+<div id="board">
+  <div class="grid" id="grid"></div>
 </div>
 
-<div class="board">
-  <div id="grid" class="grid"></div>
-</div>
+<div id="shapes"></div>
 
-<div class="shapes" id="shapes"></div>
-
-<div class="overlay" id="gameOver">
-  <div class="popup">
-    <h2>GAME OVER</h2>
-    <p>Score: <span id="finalScore"></span></p>
+<div id="overlay">
+  <div id="gameover">
+    <h2>Game Over</h2>
     <button onclick="restart()">Replay</button>
   </div>
 </div>
 
 <script>
+const SIZE=10;
 const gridEl=document.getElementById("grid");
-const shapesEl=document.getElementById("shapes");
 const scoreEl=document.getElementById("score");
-const gameOverEl=document.getElementById("gameOver");
-const finalScoreEl=document.getElementById("finalScore");
+const shapesEl=document.getElementById("shapes");
+const overlay=document.getElementById("overlay");
 
-let grid=Array(100).fill(null);
+let grid=[...Array(SIZE*SIZE)].fill(null);
 let score=0;
-let dragData=null;
-let clone=null;
-let ghost=[];
 
-const COLORS=["c1","c2","c3","c4"];
+const COLORS=["#ff9f43","#1dd1a1","#54a0ff","#c56cf0"];
+
 const SHAPES=[
- [[0,0],[1,0],[2,0]],
- [[0,0],[0,1],[1,1]],
- [[0,0],[1,0],[0,1],[1,1]],
- [[0,0],[1,0],[2,0],[1,1]]
+ [[1,1,1],[0,1,0]],
+ [[1,1,1]],
+ [[1,1],[1,1]],
+ [[1],[1],[1]],
+ [[1,1,0],[0,1,1]]
 ];
 
-function initGrid(){
+function beep(freq=400){
+  const ctx=new AudioContext();
+  const o=ctx.createOscillator();
+  o.frequency.value=freq;
+  o.connect(ctx.destination);
+  o.start();
+  o.stop(ctx.currentTime+0.1);
+}
+
+function drawGrid(){
   gridEl.innerHTML="";
-  for(let i=0;i<100;i++){
-    const c=document.createElement("div");
-    c.className="cell";
-    gridEl.appendChild(c);
-  }
+  grid.forEach(c=>{
+    const d=document.createElement("div");
+    d.className="cell";
+    if(c){
+      d.classList.add("filled");
+      d.style.setProperty("--fill",c);
+    }
+    gridEl.appendChild(d);
+  });
 }
 
-function newShape(){
-  return {
-    shape:SHAPES[Math.floor(Math.random()*SHAPES.length)],
-    color:COLORS[Math.floor(Math.random()*COLORS.length)]
-  };
-}
-
-function renderShapes(){
+function newShapes(){
   shapesEl.innerHTML="";
   for(let i=0;i<3;i++){
-    const d=newShape();
-    const s=document.createElement("div");
-    s.className="shape";
-    s.dataset.shape=JSON.stringify(d.shape);
-    s.dataset.color=d.color;
-
-    const maxX=Math.max(...d.shape.map(p=>p[0]));
-    s.style.gridTemplateColumns=`repeat(${maxX+1},36px)`;
-
-    d.shape.forEach(p=>{
-      const b=document.createElement("div");
-      b.className="block "+d.color;
-      b.style.gridColumn=p[0]+1;
-      b.style.gridRow=p[1]+1;
-      s.appendChild(b);
+    const shape=SHAPES[Math.floor(Math.random()*SHAPES.length)];
+    const color=COLORS[Math.floor(Math.random()*COLORS.length)];
+    const el=document.createElement("div");
+    el.className="shape";
+    el.style.setProperty("--c",color);
+    el.dataset.shape=JSON.stringify(shape);
+    el.dataset.color=color;
+    el.style.gridTemplateColumns=`repeat(${shape[0].length},1fr)`;
+    shape.flat().forEach(v=>{
+      if(v){
+        const b=document.createElement("div");
+        b.className="block";
+        b.style.background=color;
+        el.appendChild(b);
+      }else{
+        el.appendChild(document.createElement("div"));
+      }
     });
-
-    s.onpointerdown=e=>startDrag(e,s);
-    shapesEl.appendChild(s);
+    enableDrag(el);
+    shapesEl.appendChild(el);
   }
 }
 
-function startDrag(e,shape){
-  dragData={
-    shape:JSON.parse(shape.dataset.shape),
-    color:shape.dataset.color,
-    source:shape
-  };
-  clone=shape.cloneNode(true);
-  clone.classList.add("drag-clone");
-  document.body.appendChild(clone);
-  moveClone(e);
+function enableDrag(el){
+  let clone;
+  el.addEventListener("pointerdown",e=>{
+    clone=el.cloneNode(true);
+    clone.classList.add("dragging");
+    document.body.appendChild(clone);
+  });
+  el.addEventListener("pointermove",e=>{
+    if(!clone)return;
+    clone.style.left=e.clientX-30+"px";
+    clone.style.top=e.clientY-30+"px";
+    ghost(el,e);
+  });
+  el.addEventListener("pointerup",e=>{
+    if(!clone)return;
+    if(place(el,e)){
+      beep(600);
+      el.remove();
+      if(shapesEl.children.length===0)newShapes();
+      clearLines();
+      if(checkGameOver())overlay.style.display="flex";
+    }
+    clone.remove();
+    clearGhost();
+    clone=null;
+  });
 }
 
-function moveClone(e){
-  if(!clone) return;
-  clone.style.left=e.clientX-40+"px";
-  clone.style.top=e.clientY-40+"px";
+function ghost(el,e){
+  clearGhost();
+  const shape=JSON.parse(el.dataset.shape);
+  const rect=gridEl.getBoundingClientRect();
+  const x=Math.floor((e.clientX-rect.left)/34);
+  const y=Math.floor((e.clientY-rect.top)/34);
+  shape.forEach((r,dy)=>r.forEach((v,dx)=>{
+    if(v){
+      const i=(y+dy)*SIZE+(x+dx);
+      if(grid[i]===null){
+        gridEl.children[i]?.classList.add("ghost");
+      }
+    }
+  }));
 }
 
 function clearGhost(){
-  ghost.forEach(i=>gridEl.children[i].classList.remove("ghost"));
-  ghost=[];
+  [...gridEl.children].forEach(c=>c.classList.remove("ghost"));
 }
 
-function canPlace(shape,x,y){
-  return shape.every(p=>{
-    const nx=x+p[0],ny=y+p[1];
-    return nx>=0&&ny>=0&&nx<10&&ny<10&&!grid[ny*10+nx];
-  });
+function place(el,e){
+  const shape=JSON.parse(el.dataset.shape);
+  const color=el.dataset.color;
+  const rect=gridEl.getBoundingClientRect();
+  const x=Math.floor((e.clientX-rect.left)/34);
+  const y=Math.floor((e.clientY-rect.top)/34);
+  for(let dy=0;dy<shape.length;dy++)
+    for(let dx=0;dx<shape[0].length;dx++)
+      if(shape[dy][dx]){
+        const i=(y+dy)*SIZE+(x+dx);
+        if(i<0||i>=100||grid[i])return false;
+      }
+  shape.forEach((r,dy)=>r.forEach((v,dx)=>{
+    if(v){
+      grid[(y+dy)*SIZE+(x+dx)]=color;
+    }
+  }));
+  score+=10;
+  scoreEl.textContent="👑 "+score;
+  drawGrid();
+  return true;
 }
 
-document.onpointermove=e=>{
-  if(!dragData) return;
-  moveClone(e);
-  clearGhost();
-  const r=gridEl.getBoundingClientRect();
-  const x=Math.floor((e.clientX-r.left)/41);
-  const y=Math.floor((e.clientY-r.top)/41);
-  if(canPlace(dragData.shape,x,y)){
-    dragData.shape.forEach(p=>{
-      const idx=(y+p[1])*10+(x+p[0]);
-      ghost.push(idx);
-      gridEl.children[idx].classList.add("ghost");
-    });
+function clearLines(){
+  for(let y=0;y<SIZE;y++){
+    if([...Array(SIZE)].every((_,x)=>grid[y*SIZE+x])){
+      for(let x=0;x<SIZE;x++)grid[y*SIZE+x]=null;
+      score+=100;
+    }
   }
-};
-
-document.onpointerup=e=>{
-  if(!dragData) return;
-  const r=gridEl.getBoundingClientRect();
-  const x=Math.floor((e.clientX-r.left)/41);
-  const y=Math.floor((e.clientY-r.top)/41);
-
-  if(canPlace(dragData.shape,x,y)){
-    dragData.shape.forEach(p=>{
-      const idx=(y+p[1])*10+(x+p[0]);
-      grid[idx]=dragData.color;
-    });
-    score+=10;
-    scoreEl.textContent=score;
-    dragData.source.remove();
-    renderGrid();
-    if(shapesEl.children.length===0) renderShapes();
-    if(checkGameOver()) showGameOver();
-  }
-
-  clearGhost();
-  clone.remove();
-  dragData=null;
-};
-
-function renderGrid(){
-  grid.forEach((c,i)=>{
-    const el=gridEl.children[i];
-    el.className="cell";
-    if(c) el.classList.add("filled",c);
-  });
+  drawGrid();
 }
 
 function checkGameOver(){
   for(const s of shapesEl.children){
-    const sh=JSON.parse(s.dataset.shape);
-    for(let y=0;y<10;y++)
-      for(let x=0;x<10;x++)
-        if(canPlace(sh,x,y)) return false;
+    const shape=JSON.parse(s.dataset.shape);
+    for(let y=0;y<SIZE;y++)
+      for(let x=0;x<SIZE;x++){
+        let ok=true;
+        shape.forEach((r,dy)=>r.forEach((v,dx)=>{
+          if(v){
+            const i=(y+dy)*SIZE+(x+dx);
+            if(i<0||i>=100||grid[i])ok=false;
+          }
+        }));
+        if(ok)return false;
+      }
   }
   return true;
 }
 
-function showGameOver(){
-  finalScoreEl.textContent=score;
-  gameOverEl.style.display="flex";
-}
-
 function restart(){
-  grid=Array(100).fill(null);
+  grid.fill(null);
   score=0;
-  scoreEl.textContent=0;
-  gameOverEl.style.display="none";
-  initGrid();
-  renderShapes();
+  scoreEl.textContent="👑 0";
+  overlay.style.display="none";
+  drawGrid();
+  newShapes();
 }
 
-initGrid();
-renderShapes();
+drawGrid();
+newShapes();
 </script>
+
 </body>
 </html>
