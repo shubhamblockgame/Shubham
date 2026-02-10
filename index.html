@@ -1,304 +1,324 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shubham's Block Game</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Shubham Block</title>
 
 <style>
-:root{
-  --bg:#425a92;
-  --grid:#1e2a4a;
-  --cell:#24345c;
-  --glow:#6fd3ff;
-}
-*{box-sizing:border-box;font-family:sans-serif;}
-body{
-  margin:0;
-  background:var(--bg);
-  color:#fff;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
+/* ===================== RESET ===================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  user-select: none;
 }
 
-header{
-  width:100%;
-  display:flex;
-  justify-content:space-between;
-  padding:14px 20px;
-  font-weight:bold;
-}
-#score{font-size:20px;}
-#level{opacity:.9}
-
-#board{
-  margin-top:10px;
-  padding:10px;
-  background:var(--grid);
-  border-radius:20px;
-  box-shadow:0 0 20px var(--glow);
-}
-.grid{
-  display:grid;
-  grid-template-columns:repeat(10,1fr);
-  gap:6px;
-}
-.cell{
-  width:28px;
-  height:28px;
-  border-radius:8px;
-  background:var(--cell);
-}
-.cell.filled{background:var(--fill);}
-.cell.ghost{opacity:.35;}
-
-#shapes{
-  display:flex;
-  justify-content:space-between;
-  width:90%;
-  margin-top:25px;
-}
-.shape{
-  display:grid;
-  gap:4px;
-  touch-action:none;
-}
-.block{
-  width:26px;
-  height:26px;
-  border-radius:7px;
-  background:var(--c);
-}
-.dragging{
-  position:fixed;
-  pointer-events:none;
-  z-index:999;
+body {
+  background: radial-gradient(circle at top, #1b1b2b, #0e0e16);
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
-#overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.7);
-  display:none;
-  align-items:center;
-  justify-content:center;
+/* ===================== GAME CONTAINER ===================== */
+#game {
+  width: min(420px, 95vw);
 }
-#gameover{
-  background:#24345c;
-  padding:30px;
-  border-radius:20px;
-  text-align:center;
+
+/* ===================== TOP BAR ===================== */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 8px;
 }
-button{
-  margin-top:15px;
-  padding:12px 25px;
-  border:none;
-  border-radius:12px;
-  font-size:18px;
+
+.score-box {
+  background: #20203a;
+  border-radius: 12px;
+  padding: 6px 12px;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+}
+
+.score-box span {
+  color: #ffd369;
+}
+
+.icon {
+  font-size: 20px;
+  opacity: 0.85;
+}
+
+/* ===================== HOME SCREEN ===================== */
+#home {
+  text-align: center;
+  padding: 30px 10px;
+}
+
+#home h1 {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+#home p {
+  opacity: 0.8;
+  margin-top: 8px;
+}
+
+button {
+  margin-top: 24px;
+  padding: 12px 26px;
+  border: none;
+  border-radius: 30px;
+  background: linear-gradient(135deg,#5f8cff,#7a6cff);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+}
+
+/* ===================== GRID ===================== */
+#board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  background: #111125;
+  padding: 8px;
+  border-radius: 16px;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+}
+
+.cell {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #1c1c34;
+  border-radius: 6px;
+}
+
+/* ===================== BLOCK COLORS ===================== */
+.block {
+  border-radius: 6px;
+  box-shadow: inset -2px -2px 6px rgba(0,0,0,0.3),
+              inset 2px 2px 6px rgba(255,255,255,0.2),
+              0 6px 10px rgba(0,0,0,0.4);
+}
+
+.blue { background: linear-gradient(#4da3ff,#1b6ddf); }
+.orange { background: linear-gradient(#ffb14d,#d66a00); }
+.green { background: linear-gradient(#6dff8d,#0e9f52); }
+.purple { background: linear-gradient(#b07cff,#5a2dbf); }
+.red { background: linear-gradient(#ff6b6b,#c62828); }
+.yellow { background: linear-gradient(#ffe066,#e6b800); }
+.cyan { background: linear-gradient(#5fffff,#00bcd4); }
+
+/* ===================== BOTTOM PIECES ===================== */
+#pieces {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.piece {
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+  animation: pulse 1.8s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* ===================== GAME OVER ===================== */
+#gameOver {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+#gameOver .box {
+  background: #1c1c34;
+  padding: 30px;
+  border-radius: 20px;
+  text-align: center;
+}
+
+#gameOver h2 {
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+
+/* ===================== DRAG ===================== */
+.dragging {
+  position: fixed;
+  pointer-events: none;
+  transform: scale(1.1);
+  z-index: 999;
 }
 </style>
 </head>
 
 <body>
+<div id="game">
 
-<header>
-  <div id="score">👑 0</div>
-  <div id="level">LEVEL 1</div>
-</header>
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="score-box"><span>👑</span><span id="highScore">8767</span></div>
+    <div class="score-box">Score: <span id="score">480</span></div>
+    <div class="icon">⚙️</div>
+  </div>
 
-<div id="board">
-  <div class="grid" id="grid"></div>
+  <!-- HOME -->
+  <div id="home">
+    <h1>Shubham Block</h1>
+    <p>Relaxing!</p>
+    <button onclick="startGame()">Play</button>
+  </div>
+
+  <!-- BOARD -->
+  <div id="board" style="display:none"></div>
+
+  <!-- PIECES -->
+  <div id="pieces" style="display:none"></div>
+
 </div>
 
-<div id="shapes"></div>
-
-<div id="overlay">
-  <div id="gameover">
+<!-- GAME OVER -->
+<div id="gameOver">
+  <div class="box">
     <h2>Game Over</h2>
-    <button onclick="restart()">Replay</button>
+    <p>Your Score: <span id="finalScore"></span></p>
+    <button onclick="location.reload()">Restart</button>
   </div>
 </div>
 
 <script>
-const SIZE=10;
-const gridEl=document.getElementById("grid");
-const scoreEl=document.getElementById("score");
-const shapesEl=document.getElementById("shapes");
-const overlay=document.getElementById("overlay");
+/* ===================== GAME DATA ===================== */
+const board = document.getElementById("board");
+const piecesDiv = document.getElementById("pieces");
+const scoreEl = document.getElementById("score");
+const highScoreEl = document.getElementById("highScore");
 
-let grid=[...Array(SIZE*SIZE)].fill(null);
-let score=0;
+let grid = Array(64).fill(null);
+let score = 480;
+let highScore = localStorage.getItem("shubham_high") || 8767;
 
-const COLORS=["#ff9f43","#1dd1a1","#54a0ff","#c56cf0"];
+highScoreEl.textContent = highScore;
 
-const SHAPES=[
- [[1,1,1],[0,1,0]],
- [[1,1,1]],
- [[1,1],[1,1]],
- [[1],[1],[1]],
- [[1,1,0],[0,1,1]]
+/* ===================== SOUNDS (PLACEHOLDER) ===================== */
+function block_drag_sound(){}
+function block_place_sound(){}
+function line_clear_sound(){}
+function game_over_sound(){}
+
+/* ===================== SHAPES ===================== */
+const SHAPES = [
+  [[1,1],[1,1]],
+  [[1,1,1]],
+  [[1],[1],[1]],
+  [[1,1,1],[0,1,0]],
+  [[1,1,0],[0,1,1]]
 ];
 
-function beep(freq=400){
-  const ctx=new AudioContext();
-  const o=ctx.createOscillator();
-  o.frequency.value=freq;
-  o.connect(ctx.destination);
-  o.start();
-  o.stop(ctx.currentTime+0.1);
+const COLORS = ["blue","orange","green","purple","red","yellow","cyan"];
+
+/* ===================== START GAME ===================== */
+function startGame(){
+  document.getElementById("home").style.display="none";
+  board.style.display="grid";
+  piecesDiv.style.display="flex";
+  createBoard();
+  generatePieces();
 }
 
-function drawGrid(){
-  gridEl.innerHTML="";
-  grid.forEach(c=>{
-    const d=document.createElement("div");
-    d.className="cell";
-    if(c){
-      d.classList.add("filled");
-      d.style.setProperty("--fill",c);
-    }
-    gridEl.appendChild(d);
-  });
+/* ===================== CREATE BOARD ===================== */
+function createBoard(){
+  board.innerHTML="";
+  for(let i=0;i<64;i++){
+    const cell=document.createElement("div");
+    cell.className="cell";
+    board.appendChild(cell);
+  }
 }
 
-function newShapes(){
-  shapesEl.innerHTML="";
+/* ===================== GENERATE PIECES ===================== */
+function generatePieces(){
+  piecesDiv.innerHTML="";
   for(let i=0;i<3;i++){
     const shape=SHAPES[Math.floor(Math.random()*SHAPES.length)];
     const color=COLORS[Math.floor(Math.random()*COLORS.length)];
-    const el=document.createElement("div");
-    el.className="shape";
-    el.style.setProperty("--c",color);
-    el.dataset.shape=JSON.stringify(shape);
-    el.dataset.color=color;
-    el.style.gridTemplateColumns=`repeat(${shape[0].length},1fr)`;
-    shape.flat().forEach(v=>{
-      if(v){
-        const b=document.createElement("div");
-        b.className="block";
-        b.style.background=color;
-        el.appendChild(b);
-      }else{
-        el.appendChild(document.createElement("div"));
+    const piece=createPiece(shape,color);
+    piecesDiv.appendChild(piece);
+  }
+}
+
+/* ===================== CREATE PIECE ===================== */
+function createPiece(shape,color){
+  const piece=document.createElement("div");
+  piece.className="piece";
+  piece.style.gridTemplateColumns=`repeat(${shape[0].length},1fr)`;
+  piece.dataset.shape=JSON.stringify(shape);
+  piece.dataset.color=color;
+
+  shape.forEach(row=>{
+    row.forEach(cell=>{
+      const b=document.createElement("div");
+      if(cell){
+        b.className=`block ${color}`;
       }
+      piece.appendChild(b);
     });
-    enableDrag(el);
-    shapesEl.appendChild(el);
-  }
-}
-
-function enableDrag(el){
-  let clone;
-  el.addEventListener("pointerdown",e=>{
-    clone=el.cloneNode(true);
-    clone.classList.add("dragging");
-    document.body.appendChild(clone);
   });
-  el.addEventListener("pointermove",e=>{
-    if(!clone)return;
-    clone.style.left=e.clientX-30+"px";
-    clone.style.top=e.clientY-30+"px";
-    ghost(el,e);
-  });
-  el.addEventListener("pointerup",e=>{
-    if(!clone)return;
-    if(place(el,e)){
-      beep(600);
-      el.remove();
-      if(shapesEl.children.length===0)newShapes();
-      clearLines();
-      if(checkGameOver())overlay.style.display="flex";
-    }
-    clone.remove();
-    clearGhost();
-    clone=null;
-  });
+
+  piece.addEventListener("pointerdown", startDrag);
+  return piece;
 }
 
-function ghost(el,e){
-  clearGhost();
-  const shape=JSON.parse(el.dataset.shape);
-  const rect=gridEl.getBoundingClientRect();
-  const x=Math.floor((e.clientX-rect.left)/34);
-  const y=Math.floor((e.clientY-rect.top)/34);
-  shape.forEach((r,dy)=>r.forEach((v,dx)=>{
-    if(v){
-      const i=(y+dy)*SIZE+(x+dx);
-      if(grid[i]===null){
-        gridEl.children[i]?.classList.add("ghost");
-      }
-    }
-  }));
+/* ===================== DRAG & DROP ===================== */
+let dragPiece=null;
+
+function startDrag(e){
+  dragPiece=e.currentTarget.cloneNode(true);
+  dragPiece.classList.add("dragging");
+  document.body.appendChild(dragPiece);
+  moveDrag(e);
+  document.addEventListener("pointermove", moveDrag);
+  document.addEventListener("pointerup", endDrag);
+  block_drag_sound();
 }
 
-function clearGhost(){
-  [...gridEl.children].forEach(c=>c.classList.remove("ghost"));
+function moveDrag(e){
+  if(!dragPiece) return;
+  dragPiece.style.left=e.clientX-30+"px";
+  dragPiece.style.top=e.clientY-30+"px";
 }
 
-function place(el,e){
-  const shape=JSON.parse(el.dataset.shape);
-  const color=el.dataset.color;
-  const rect=gridEl.getBoundingClientRect();
-  const x=Math.floor((e.clientX-rect.left)/34);
-  const y=Math.floor((e.clientY-rect.top)/34);
-  for(let dy=0;dy<shape.length;dy++)
-    for(let dx=0;dx<shape[0].length;dx++)
-      if(shape[dy][dx]){
-        const i=(y+dy)*SIZE+(x+dx);
-        if(i<0||i>=100||grid[i])return false;
-      }
-  shape.forEach((r,dy)=>r.forEach((v,dx)=>{
-    if(v){
-      grid[(y+dy)*SIZE+(x+dx)]=color;
-    }
-  }));
-  score+=10;
-  scoreEl.textContent="👑 "+score;
-  drawGrid();
-  return true;
+function endDrag(e){
+  document.removeEventListener("pointermove", moveDrag);
+  document.removeEventListener("pointerup", endDrag);
+  dragPiece.remove();
+  dragPiece=null;
 }
 
-function clearLines(){
-  for(let y=0;y<SIZE;y++){
-    if([...Array(SIZE)].every((_,x)=>grid[y*SIZE+x])){
-      for(let x=0;x<SIZE;x++)grid[y*SIZE+x]=null;
-      score+=100;
-    }
-  }
-  drawGrid();
+/* ===================== GAME OVER CHECK ===================== */
+function gameOver(){
+  game_over_sound();
+  document.getElementById("finalScore").textContent=score;
+  document.getElementById("gameOver").style.display="flex";
 }
-
-function checkGameOver(){
-  for(const s of shapesEl.children){
-    const shape=JSON.parse(s.dataset.shape);
-    for(let y=0;y<SIZE;y++)
-      for(let x=0;x<SIZE;x++){
-        let ok=true;
-        shape.forEach((r,dy)=>r.forEach((v,dx)=>{
-          if(v){
-            const i=(y+dy)*SIZE+(x+dx);
-            if(i<0||i>=100||grid[i])ok=false;
-          }
-        }));
-        if(ok)return false;
-      }
-  }
-  return true;
-}
-
-function restart(){
-  grid.fill(null);
-  score=0;
-  scoreEl.textContent="👑 0";
-  overlay.style.display="none";
-  drawGrid();
-  newShapes();
-}
-
-drawGrid();
-newShapes();
 </script>
-
 </body>
 </html>
