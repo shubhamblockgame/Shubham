@@ -14,33 +14,18 @@ body{
   text-align:center;
   touch-action:none;
 }
+header{padding:10px 0 4px;}
+header h1{margin:0;font-size:18px;letter-spacing:1px;}
+#score{font-size:44px;font-weight:bold;}
+#score span{font-size:22px;margin-right:6px}
 
-/* ===== HEADER ===== */
-header{
-  padding:10px 0 4px;
-}
-header h1{
-  margin:0;
-  font-size:18px;
-  letter-spacing:1px;
-}
-#score{
-  font-size:46px;
-  font-weight:bold;
-}
-
-/* ===== CANVAS ===== */
 canvas{
   display:block;
-  margin:10px auto 5px;
+  margin:10px auto 6px;
   background:#1e2a4f;
-  border-radius:14px;
+  border-radius:16px;
 }
-#status{
-  font-size:12px;
-  opacity:.7;
-  margin-bottom:8px;
-}
+#status{font-size:12px;opacity:.75;margin-bottom:8px}
 </style>
 </head>
 
@@ -48,47 +33,49 @@ canvas{
 
 <header>
   <h1>Shubham Block</h1>
-  <div id="score">0</div>
+  <div id="score"><span>💎</span>0</div>
 </header>
 
 <canvas id="game"></canvas>
-<div id="status">drag • snap • blast</div>
+<div id="status">drag • snap • blast 😌</div>
 
 <script>
-/* =====================================================
-   BASIC SETUP
-===================================================== */
+/* ================= BASIC ================= */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const SIZE=10;
+const CELL=Math.floor(Math.min(window.innerWidth,420)/SIZE);
+canvas.width=CELL*SIZE;
+canvas.height=CELL*SIZE+150;
 
-const SIZE = 10;
-const CELL = Math.floor(Math.min(window.innerWidth,420)/SIZE);
-canvas.width = CELL*SIZE;
-canvas.height = CELL*SIZE + 140;
+let score=0;
+let grid=Array(SIZE*SIZE).fill(null);
 
-let score = 0;
-let grid = Array(SIZE*SIZE).fill(null);
+/* ================= SOUND (INLINE) ================= */
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+const audioCtx=new AudioCtx();
+function beep(freq=500,dur=0.08){
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.frequency.value=freq; o.start();
+  g.gain.setValueAtTime(0.12,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+  o.stop(audioCtx.currentTime+dur);
+}
 
-/* =====================================================
-   COLORS & SHAPES
-===================================================== */
-const COLORS = ["#4da3ff","#facc15","#a855f7","#22c55e","#fb923c"];
-
-const SHAPES = [
- [[1,1,1],[0,1,0]],     // T
- [[1,1],[1,1]],         // square
- [[1,1,1,1]],           // line
- [[1,0],[1,0],[1,1]],   // L
- [[0,1],[1,1],[1,0]]    // Z
+/* ================= COLORS & SHAPES ================= */
+const COLORS=["#4da3ff","#facc15","#a855f7","#22c55e","#fb923c"];
+const SHAPES=[
+ [[1,1,1],[0,1,0]],
+ [[1,1],[1,1]],
+ [[1,1,1,1]],
+ [[1,0],[1,0],[1,1]],
+ [[0,1],[1,1],[1,0]]
 ];
 
-/* =====================================================
-   PIECES
-===================================================== */
-let pieces = [];
-let dragging = null;
-let offX = 0, offY = 0;
-let ghost = null;
+/* ================= PIECES ================= */
+let pieces=[],dragging=null,offX=0,offY=0,ghost=null,blast=[];
 
 function newPieces(){
   pieces=[];
@@ -96,68 +83,77 @@ function newPieces(){
     pieces.push({
       shape:SHAPES[Math.floor(Math.random()*SHAPES.length)],
       color:COLORS[Math.floor(Math.random()*COLORS.length)],
-      x: CELL*(i*3+2),
-      y: CELL*SIZE + 30
+      x:CELL*(i*3+2),
+      y:CELL*SIZE+30,
+      homeX:CELL*(i*3+2),
+      homeY:CELL*SIZE+30
     });
   }
 }
 
-/* =====================================================
-   DRAW
-===================================================== */
+/* ================= DRAW ================= */
+function glossyRect(x,y,w,h,color){
+  const g=ctx.createLinearGradient(x,y,x,y+h);
+  g.addColorStop(0,"#ffffff66");
+  g.addColorStop(.25,color);
+  g.addColorStop(1,"#00000055");
+  ctx.fillStyle=g;
+  ctx.fillRect(x,y,w,h);
+}
+
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  /* board */
+  // board
   for(let y=0;y<SIZE;y++){
     for(let x=0;x<SIZE;x++){
       const i=y*SIZE+x;
-      ctx.fillStyle = grid[i] || "#111a33";
+      ctx.fillStyle=grid[i]||"#111a33";
       ctx.fillRect(x*CELL+2,y*CELL+2,CELL-4,CELL-4);
     }
   }
 
-  /* ghost preview */
+  // blast animation
+  blast.forEach(b=>{
+    ctx.globalAlpha=b.a;
+    glossyRect(b.x*CELL+4,b.y*CELL+4,CELL-8,CELL-8,b.c);
+    b.a-=0.06;
+  });
+  blast=blast.filter(b=>b.a>0);
+  ctx.globalAlpha=1;
+
+  // ghost
   if(ghost){
-    ctx.globalAlpha = 0.35;
+    ctx.globalAlpha=.35;
     ghost.cells.forEach(i=>{
-      let x=i%SIZE, y=Math.floor(i/SIZE);
-      ctx.fillStyle = ghost.color;
-      ctx.fillRect(x*CELL+4,y*CELL+4,CELL-8,CELL-8);
+      glossyRect((i%SIZE)*CELL+6,Math.floor(i/SIZE)*CELL+6,CELL-12,CELL-12,ghost.color);
     });
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
   }
 
-  /* pieces */
+  // pieces
   pieces.forEach(p=>{
     p.shape.forEach((r,ry)=>{
       r.forEach((v,rx)=>{
         if(v){
-          ctx.fillStyle=p.color;
-          ctx.fillRect(
-            p.x+rx*CELL+2,
-            p.y+ry*CELL+2,
-            CELL-4,CELL-4
-          );
+          glossyRect(p.x+rx*CELL+2,p.y+ry*CELL+2,CELL-4,CELL-4,p.color);
         }
       });
     });
   });
 }
 
-/* =====================================================
-   LOGIC
-===================================================== */
+/* ================= LOGIC ================= */
 function canPlace(shape,gx,gy){
   let cells=[];
   for(let r=0;r<shape.length;r++){
     for(let c=0;c<shape[r].length;c++){
       if(shape[r][c]){
-        let nx=gx+c, ny=gy+r;
+        let nx=gx+c,ny=gy+r;
         if(nx<0||ny<0||nx>=SIZE||ny>=SIZE) return null;
-        let idx=ny*SIZE+nx;
-        if(grid[idx]) return null;
-        cells.push(idx);
+        let id=ny*SIZE+nx;
+        if(grid[id]) return null;
+        cells.push(id);
       }
     }
   }
@@ -166,14 +162,13 @@ function canPlace(shape,gx,gy){
 
 function placePiece(p,cells){
   cells.forEach(i=>grid[i]=p.color);
-  score += cells.length*10;
+  score+=cells.length*10;
+  vibrate(40); beep(700);
   clearLines();
   updateScore();
 }
 
 function clearLines(){
-  let cleared=false;
-
   for(let i=0;i<SIZE;i++){
     let row=true,col=true;
     for(let j=0;j<SIZE;j++){
@@ -181,24 +176,27 @@ function clearLines(){
       if(!grid[j*SIZE+i]) col=false;
     }
     if(row){
-      for(let j=0;j<SIZE;j++) grid[i*SIZE+j]=null;
-      score+=100; cleared=true;
+      for(let j=0;j<SIZE;j++){
+        blast.push({x:j,y:i,c:grid[i*SIZE+j],a:1});
+        grid[i*SIZE+j]=null;
+      }
+      score+=100; beep(900); vibrate(80);
     }
     if(col){
-      for(let j=0;j<SIZE;j++) grid[j*SIZE+i]=null;
-      score+=100; cleared=true;
+      for(let j=0;j<SIZE;j++){
+        blast.push({x:i,y:j,c:grid[j*SIZE+i],a:1});
+        grid[j*SIZE+i]=null;
+      }
+      score+=100; beep(900); vibrate(80);
     }
   }
-  if(cleared) updateScore();
 }
 
 function updateScore(){
-  document.getElementById("score").innerText=score;
+  document.getElementById("score").innerHTML="<span>💎</span>"+score;
 }
 
-/* =====================================================
-   GAME OVER
-===================================================== */
+/* ================= GAME OVER ================= */
 function hasMove(){
   for(let p of pieces){
     for(let y=0;y<SIZE;y++){
@@ -210,20 +208,21 @@ function hasMove(){
   return false;
 }
 
-/* =====================================================
-   DRAG & DROP
-===================================================== */
+/* ================= VIBRATION ================= */
+function vibrate(ms){
+  if(navigator.vibrate) navigator.vibrate(ms);
+}
+
+/* ================= DRAG ================= */
 canvas.onpointerdown=e=>{
   const mx=e.offsetX,my=e.offsetY;
   pieces.forEach(p=>{
     p.shape.forEach((r,ry)=>{
       r.forEach((v,rx)=>{
         if(v){
-          let x=p.x+rx*CELL, y=p.y+ry*CELL;
+          let x=p.x+rx*CELL,y=p.y+ry*CELL;
           if(mx>x&&mx<x+CELL&&my>y&&my<y+CELL){
-            dragging=p;
-            offX=mx-p.x;
-            offY=my-p.y;
+            dragging=p; offX=mx-p.x; offY=my-p.y;
           }
         }
       });
@@ -235,11 +234,10 @@ canvas.onpointermove=e=>{
   if(!dragging) return;
   dragging.x=e.offsetX-offX;
   dragging.y=e.offsetY-offY;
-
   let gx=Math.round(dragging.x/CELL);
   let gy=Math.round(dragging.y/CELL);
   let cells=canPlace(dragging.shape,gx,gy);
-  ghost = cells ? {cells,color:dragging.color}:null;
+  ghost=cells?{cells,color:dragging.color}:null;
 };
 
 canvas.onpointerup=e=>{
@@ -250,25 +248,23 @@ canvas.onpointerup=e=>{
 
   if(cells){
     placePiece(dragging,cells);
-    pieces = pieces.filter(p=>p!==dragging);
+    pieces=pieces.filter(p=>p!==dragging);
     if(pieces.length===0) newPieces();
     if(!hasMove()){
-      setTimeout(()=>alert("Game Over!\nScore: "+score),100);
+      setTimeout(()=>alert("😵 Game Over\nScore: "+score),120);
     }
+  }else{
+    // auto return
+    dragging.x=dragging.homeX;
+    dragging.y=dragging.homeY;
+    beep(200); vibrate(20);
   }
-  dragging=null;
-  ghost=null;
+  dragging=null; ghost=null;
 };
 
-/* =====================================================
-   LOOP
-===================================================== */
+/* ================= LOOP ================= */
 newPieces();
-function loop(){
-  draw();
-  requestAnimationFrame(loop);
-}
-loop();
+(function loop(){ draw(); requestAnimationFrame(loop); })();
 </script>
 
 </body>
