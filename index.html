@@ -3,318 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Shubham Block - Official</title>
+    <title>Shubham Block Official</title>
     <style>
         :root {
             --bg-blue: #4a69bd;
-            --grid-dark: #1e272e;
+            --panel-dark: #1e272e;
             --accent-gold: #ffdd59;
-            --text-white: #ffffff;
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-blue);
-            font-family: 'Arial', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            touch-action: none;
+            margin: 0; padding: 0; background-color: var(--bg-blue);
+            font-family: 'Arial', sans-serif; display: flex;
+            flex-direction: column; align-items: center; height: 100vh;
+            overflow: hidden; touch-action: none; color: white;
         }
 
-        /* Top Header UI */
-        #header {
-            width: 100%;
-            max-width: 400px;
-            padding: 20px 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
+        /* Header UI matching your image */
+        #ui-header {
+            width: 100%; max-width: 400px; padding: 20px 0;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
         }
 
-        .branding-title {
-            font-size: 28px;
-            font-weight: 900;
-            color: var(--accent-gold);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            margin: 0;
+        .branding { font-size: 32px; font-weight: 900; color: var(--accent-gold); margin: 0; }
+
+        .stats { width: 85%; display: flex; justify-content: space-between; align-items: center; }
+
+        .hi-score { font-size: 26px; font-weight: bold; color: var(--accent-gold); }
+
+        .score-box {
+            background: rgba(255, 255, 255, 0.2); padding: 5px 30px;
+            border-radius: 10px; font-size: 26px; font-weight: bold;
         }
 
-        .stats-container {
-            width: 90%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        /* The Game Grid */
+        #game-container {
+            background: #2f3542; padding: 6px; border-radius: 8px;
+            border: 4px solid #3d4455; position: relative;
         }
 
-        .high-score {
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--accent-gold);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        canvas { display: block; background-color: var(--panel-dark); border-radius: 4px; }
 
-        .current-score-box {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px 25px;
-            border-radius: 12px;
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-            min-width: 60px;
-            text-align: center;
-        }
-
-        /* The Main Game Board */
-        #game-board-container {
-            background: #2f3542;
-            padding: 8px;
-            border-radius: 10px;
-            border: 4px solid #3d4455;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-        }
-
-        canvas {
-            display: block;
-            background-color: var(--grid-dark);
-            border-radius: 4px;
-        }
-
-        /* Bottom Shape Menu */
-        #shape-menu {
-            margin-top: 30px;
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 120px;
+        /* Bottom Menu */
+        #piece-dock {
+            margin-top: 30px; display: flex; gap: 20px;
+            justify-content: center; width: 100%; height: 120px;
         }
 
         .footer-text {
-            margin-top: auto;
-            margin-bottom: 30px;
-            font-size: 42px;
-            font-weight: 900;
-            color: white;
-            font-style: italic;
-            text-transform: uppercase;
-            opacity: 0.9;
+            margin-top: auto; margin-bottom: 40px; font-size: 48px;
+            font-weight: 900; color: white; font-style: italic;
         }
 
-        /* Game Over Overlay */
-        #overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
+        #game-over {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.9);
+            display: none; flex-direction: column; justify-content: center;
+            align-items: center; z-index: 100;
         }
 
-        #overlay h1 { color: #ff5e57; font-size: 40px; margin-bottom: 10px; }
-        #overlay button {
-            background: var(--accent-gold);
-            border: none;
-            padding: 15px 40px;
-            font-size: 20px;
-            font-weight: bold;
-            border-radius: 50px;
-            cursor: pointer;
+        button {
+            background: var(--accent-gold); border: none; padding: 12px 30px;
+            font-size: 18px; font-weight: bold; border-radius: 25px; cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <div id="header">
-        <h1 class="branding-title">SHUBHAM BLOCK</h1>
-        <div class="stats-container">
-            <div class="high-score">👑 <span id="hi-score-val">0</span></div>
-            <div class="current-score-box" id="score-val">0</div>
+    <div id="ui-header">
+        <h1 class="branding">SHUBHAM BLOCK</h1>
+        <div class="stats">
+            <div class="hi-score">👑 <span id="hi-val">8767</span></div>
+            <div class="score-box" id="sc-val">0</div>
         </div>
     </div>
 
-    <div id="game-board-container">
-        <canvas id="mainCanvas"></canvas>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="game-over">
+            <h1 style="color:#ff5e57">GAME OVER</h1>
+            <button onclick="location.reload()">RETRY</button>
+        </div>
     </div>
 
-    <div id="shape-menu">
-        </div>
+    <div id="piece-dock"></div>
 
     <div class="footer-text">RELAXING!</div>
 
-    <div id="overlay">
-        <h1>GAME OVER</h1>
-        <p style="color:white; font-size: 20px; margin-bottom: 20px;">Score: <span id="final-score">0</span></p>
-        <button onclick="location.reload()">TRY AGAIN</button>
-    </div>
-
     <script>
-        const canvas = document.getElementById('mainCanvas');
+        const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreDisplay = document.getElementById('score-val');
-        const hiDisplay = document.getElementById('hi-score-val');
-
-        const GRID_SIZE = 8;
-        const CELL = 42;
-        const BOARD_WIDTH = GRID_SIZE * CELL;
-
-        canvas.width = BOARD_WIDTH;
-        canvas.height = BOARD_WIDTH;
+        const GRID = 8, CELL = 42, SIZE = GRID * CELL;
+        canvas.width = SIZE; canvas.height = SIZE;
 
         let score = 0;
-        let highscore = localStorage.getItem('shubham_hi') || 8767;
-        hiDisplay.innerText = highscore;
-
-        let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+        let grid = Array(GRID).fill().map(() => Array(GRID).fill(null));
         let pieces = [];
-        let activePiece = null;
-        let mouseX = 0, mouseY = 0;
+        let active = null;
+        let mPos = { x: 0, y: 0 };
 
         const SHAPES = [
-            { s: [[1,1],[1,1]], c: '#eb4d4b' }, // Red Square
-            { s: [[1,1,1]], c: '#f1c40f' },    // Yellow Line
-            { s: [[1,1],[0,1]], c: '#9b59b6' }, // Purple L
-            { s: [[1,1,1,1]], c: '#3498db' },  // Blue Long
-            { s: [[1,1],[1,1]], c: '#2ecc71' }  // Green Square
+            { s: [[1,1],[1,1]], c: '#e74c3c' },
+            { s: [[1,1,1]], c: '#f1c40f' },
+            { s: [[1,1,1,1]], c: '#3498db' },
+            { s: [[1,1],[0,1]], c: '#9b59b6' },
+            { s: [[1,1],[1,0]], c: '#2ecc71' }
         ];
 
-        function createPieces() {
+        function spawn() {
+            const dock = document.getElementById('piece-dock');
+            dock.innerHTML = '';
             pieces = [];
             for(let i=0; i<3; i++) {
-                let rand = SHAPES[Math.floor(Math.random()*SHAPES.length)];
-                pieces.push({
-                    shape: rand.s,
-                    color: rand.c,
-                    x: (window.innerWidth/2 - 150) + (i * 110),
-                    y: window.innerHeight - 180,
-                    origX: (window.innerWidth/2 - 150) + (i * 110),
-                    origY: window.innerHeight - 180,
-                    isDragging: false
-                });
+                let r = SHAPES[Math.floor(Math.random()*SHAPES.length)];
+                pieces.push({ shape: r.s, color: r.c, id: i });
+                let div = document.createElement('div');
+                div.style.width = '80px'; div.style.height = '80px';
+                div.style.background = r.c; div.style.borderRadius = '8px';
+                div.innerText = 'DRAG'; div.style.textAlign = 'center';
+                div.style.lineHeight = '80px'; div.style.fontSize = '12px';
+                div.onmousedown = div.ontouchstart = (e) => startDrag(e, pieces[i]);
+                dock.appendChild(div);
             }
         }
 
-        function drawBlock(x, y, color, context = ctx, size = CELL, alpha = 1) {
-            context.globalAlpha = alpha;
-            context.fillStyle = color;
-            context.beginPath();
-            context.roundRect(x + 2, y + 2, size - 4, size - 4, 6);
-            context.fill();
-            
-            // Glossy Bevel
-            context.fillStyle = 'rgba(255,255,255,0.2)';
-            context.fillRect(x + 5, y + 5, size - 10, size/4);
-            context.globalAlpha = 1;
+        function drawBlock(x, y, color, alpha = 1) {
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.roundRect(x + 2, y + 2, CELL - 4, CELL - 4, 6);
+            ctx.fill();
+            // Bevel effect
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillRect(x + 6, y + 6, CELL - 12, 6);
+            ctx.globalAlpha = 1;
         }
 
         function render() {
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-
-            // Draw Grid
-            for(let r=0; r<GRID_SIZE; r++) {
-                for(let c=0; c<GRID_SIZE; c++) {
+            ctx.clearRect(0,0,SIZE,SIZE);
+            for(let r=0; r<GRID; r++) {
+                for(let c=0; c<GRID; c++) {
                     ctx.fillStyle = '#262e3d';
-                    ctx.beginPath();
-                    ctx.roundRect(c*CELL+1, r*CELL+1, CELL-2, CELL-2, 4);
-                    ctx.fill();
+                    ctx.fillRect(c*CELL+1, r*CELL+1, CELL-2, CELL-2);
                     if(grid[r][c]) drawBlock(c*CELL, r*CELL, grid[r][c]);
                 }
             }
-
-            // Ghost Preview
-            if(activePiece) {
-                const rect = canvas.getBoundingClientRect();
-                let gx = Math.round((mouseX - rect.left - (activePiece.shape[0].length * CELL / 2)) / CELL);
-                let gy = Math.round((mouseY - rect.top - (activePiece.shape.length * CELL / 2)) / CELL);
-                
-                if(canPlace(activePiece.shape, gx, gy)) {
-                    activePiece.shape.forEach((row, r) => row.forEach((v, c) => {
-                        if(v) drawBlock((gx+c)*CELL, (gy+r)*CELL, activePiece.color, ctx, CELL, 0.3);
-                    }));
-                }
+            if(active) {
+                let rect = canvas.getBoundingClientRect();
+                let gx = Math.round((mPos.x - rect.left - CELL) / CELL);
+                let gy = Math.round((mPos.y - rect.top - CELL) / CELL);
+                active.shape.forEach((row, r) => row.forEach((v, c) => {
+                    if(v && gy+r < GRID && gx+c < GRID) drawBlock((gx+c)*CELL, (gy+r)*CELL, active.color, 0.4);
+                }));
             }
-
             requestAnimationFrame(render);
         }
 
-        // Logic for piece placement
-        function canPlace(shape, x, y) {
-            return shape.every((row, r) => row.every((v, c) => {
-                if(!v) return true;
-                let nr = y + r, nc = x + c;
-                return nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE && !grid[nr][nc];
-            }));
+        function startDrag(e, p) { 
+            active = p; 
+            window.onmousemove = window.ontouchmove = (ev) => {
+                let t = ev.touches ? ev.touches[0] : ev;
+                mPos = { x: t.clientX, y: t.clientY };
+            };
+            window.onmouseup = window.ontouchend = () => drop();
         }
 
-        // Interaction Handling
-        window.addEventListener('touchstart', (e) => {
-            const touch = e.touches[0];
-            pieces.forEach(p => {
-                if(touch.clientX > p.x && touch.clientX < p.x + 100 && touch.clientY > p.y && touch.clientY < p.y + 100) {
-                    activePiece = p;
-                    p.isDragging = true;
-                }
-            });
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            if(!activePiece) return;
-            mouseX = e.touches[0].clientX;
-            mouseY = e.touches[0].clientY;
-        });
-
-        window.addEventListener('touchend', () => {
-            if(!activePiece) return;
-            const rect = canvas.getBoundingClientRect();
-            let gx = Math.round((mouseX - rect.left - (activePiece.shape[0].length * CELL / 2)) / CELL);
-            let gy = Math.round((mouseY - rect.top - (activePiece.shape.length * CELL / 2)) / CELL);
-
-            if(canPlace(activePiece.shape, gx, gy)) {
-                activePiece.shape.forEach((row, r) => row.forEach((v, c) => {
-                    if(v) grid[gy+r][gx+c] = activePiece.color;
+        function drop() {
+            if(!active) return;
+            let rect = canvas.getBoundingClientRect();
+            let gx = Math.round((mPos.x - rect.left - CELL) / CELL);
+            let gy = Math.round((mPos.y - rect.top - CELL) / CELL);
+            
+            if(gx >= 0 && gy >= 0 && gx < GRID && gy < GRID) {
+                active.shape.forEach((row, r) => row.forEach((v, c) => {
+                    if(v) grid[gy+r][gx+c] = active.color;
                 }));
-                score += 10;
-                scoreDisplay.innerText = score;
-                pieces = pieces.filter(p => p !== activePiece);
-                if(pieces.length === 0) createPieces();
-                if(navigator.vibrate) navigator.vibrate(50);
-                checkLines();
+                score += 10; document.getElementById('sc-val').innerText = score;
+                check();
             }
-            activePiece = null;
-        });
-
-        function checkLines() {
-            let cleared = 0;
-            // Rows
-            for(let r=0; r<GRID_SIZE; r++) {
-                if(grid[r].every(v => v !== null)) {
-                    grid[r] = Array(GRID_SIZE).fill(null);
-                    cleared++;
-                }
-            }
-            // Cols
-            for(let c=0; c<GRID_SIZE; c++) {
-                if(grid.every(r => r[c] !== null)) {
-                    grid.forEach(r => r[c] = null);
-                    cleared++;
-                }
-            }
-            if(cleared > 0) score += cleared * 100;
+            active = null;
         }
 
-        createPieces();
-        render();
+        function check() {
+            for(let r=0; r<GRID; r++) if(grid[r].every(v => v)) grid[r].fill(null);
+            for(let c=0; c<GRID; c++) if(grid.every(r => r[c])) grid.forEach(r => r[c] = null);
+        }
+
+        spawn(); render();
     </script>
 </body>
 </html>
