@@ -3,218 +3,318 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Shubham Block Elite</title>
+    <title>Shubham Block - Official</title>
     <style>
-        :root { --bg: #030509; --panel: #111827; --gold: #ffcc00; --neon: #00d4ff; }
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; touch-action: none; }
-        
-        /* Header & Music Toggle */
-        #header { width: 100%; max-width: 400px; padding: 20px 0; text-align: center; position: relative; }
-        .title { font-size: 34px; font-weight: 900; background: linear-gradient(to bottom, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }
-        .controls { position: absolute; right: 15px; top: 25px; cursor: pointer; font-size: 24px; filter: grayscale(1); transition: 0.3s; }
-        .controls.active { filter: grayscale(0); transform: scale(1.1); }
-        
-        .stats { display: flex; justify-content: space-around; margin: 10px 0; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 15px; }
+        :root {
+            --bg-blue: #4a69bd;
+            --grid-dark: #1e272e;
+            --accent-gold: #ffdd59;
+            --text-white: #ffffff;
+        }
 
-        /* Game Board */
-        #board-wrapper { position: relative; padding: 10px; background: var(--panel); border-radius: 20px; border: 2px solid #2d3748; box-shadow: 0 0 30px rgba(0,212,255,0.15); }
-        #board-wrapper::after { content: ''; position: absolute; inset: -3px; border: 2px solid var(--neon); border-radius: 23px; animation: pulse 2s infinite; pointer-events: none; }
-        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; box-shadow: 0 0 15px var(--neon); } 100% { opacity: 0.3; } }
-        
-        canvas { display: block; border-radius: 10px; }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-blue);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
 
-        #game-over { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; border-radius: 20px; z-index: 10; }
-        button { background: var(--gold); border: none; padding: 12px 30px; border-radius: 30px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-        
-        .footer { margin-top: 15px; font-weight: bold; color: var(--neon); letter-spacing: 1px; }
+        /* Top Header UI */
+        #header {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .branding-title {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin: 0;
+        }
+
+        .stats-container {
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .high-score {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--accent-gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .current-score-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 25px;
+            border-radius: 12px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* The Main Game Board */
+        #game-board-container {
+            background: #2f3542;
+            padding: 8px;
+            border-radius: 10px;
+            border: 4px solid #3d4455;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        canvas {
+            display: block;
+            background-color: var(--grid-dark);
+            border-radius: 4px;
+        }
+
+        /* Bottom Shape Menu */
+        #shape-menu {
+            margin-top: 30px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 120px;
+        }
+
+        .footer-text {
+            margin-top: auto;
+            margin-bottom: 30px;
+            font-size: 42px;
+            font-weight: 900;
+            color: white;
+            font-style: italic;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+
+        /* Game Over Overlay */
+        #overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        #overlay h1 { color: #ff5e57; font-size: 40px; margin-bottom: 10px; }
+        #overlay button {
+            background: var(--accent-gold);
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
     <div id="header">
-        <h1 class="title">SHUBHAM BLOCK</h1>
-        <div id="music-btn" class="controls" onclick="toggleMusic()">🎵</div>
-        <div class="stats">
-            <span>🏆 <span id="hi">0</span></span>
-            <span>LEVEL <span id="lvl">1</span></span>
-            <span style="color:var(--gold)">PTS: <span id="sc">0</span></span>
+        <h1 class="branding-title">SHUBHAM BLOCK</h1>
+        <div class="stats-container">
+            <div class="high-score">👑 <span id="hi-score-val">0</span></div>
+            <div class="current-score-box" id="score-val">0</div>
         </div>
     </div>
 
-    <div id="board-wrapper">
-        <canvas id="g"></canvas>
-        <div id="game-over">
-            <h2 style="color:red; font-size: 32px;">GAME OVER</h2>
-            <p id="final">Score: 0</p>
-            <button onclick="location.reload()">PLAY AGAIN</button>
-        </div>
+    <div id="game-board-container">
+        <canvas id="mainCanvas"></canvas>
     </div>
 
-    <div class="footer" id="msg">LEVEL 1: START!</div>
+    <div id="shape-menu">
+        </div>
+
+    <div class="footer-text">RELAXING!</div>
+
+    <div id="overlay">
+        <h1>GAME OVER</h1>
+        <p style="color:white; font-size: 20px; margin-bottom: 20px;">Score: <span id="final-score">0</span></p>
+        <button onclick="location.reload()">TRY AGAIN</button>
+    </div>
 
     <script>
-        const canvas = document.getElementById('g');
+        const canvas = document.getElementById('mainCanvas');
         const ctx = canvas.getContext('2d');
-        const CELL = 46, DIM = 8, BOARD = CELL * DIM;
-        canvas.width = BOARD; canvas.height = BOARD + 150;
+        const scoreDisplay = document.getElementById('score-val');
+        const hiDisplay = document.getElementById('hi-score-val');
 
-        let grid = Array(DIM).fill().map(() => Array(DIM).fill(null));
-        let score = 0, level = 1, high = localStorage.getItem('sb_hi') || 0, musicOn = false;
-        let pieces = [], dragging = null, offset = {x:0, y:0}, particles = [];
+        const GRID_SIZE = 8;
+        const CELL = 42;
+        const BOARD_WIDTH = GRID_SIZE * CELL;
 
-        // Advanced Audio Engine
-        const ac = new (window.AudioContext || window.webkitAudioContext)();
-        let bgNode = null;
+        canvas.width = BOARD_WIDTH;
+        canvas.height = BOARD_WIDTH;
 
-        function playSfx(f, t, d) {
-            const o = ac.createOscillator(), g = ac.createGain();
-            o.type = t; o.frequency.value = f;
-            g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d);
-            o.connect(g); g.connect(ac.destination);
-            o.start(); o.stop(ac.currentTime + d);
-        }
+        let score = 0;
+        let highscore = localStorage.getItem('shubham_hi') || 8767;
+        hiDisplay.innerText = highscore;
 
-        function toggleMusic() {
-            musicOn = !musicOn;
-            document.getElementById('music-btn').classList.toggle('active');
-            if(musicOn) {
-                bgNode = ac.createOscillator();
-                let g = ac.createGain(); g.gain.value = 0.02;
-                bgNode.type = 'triangle'; bgNode.frequency.value = 110;
-                bgNode.connect(g); g.connect(ac.destination); bgNode.start();
-            } else if(bgNode) { bgNode.stop(); bgNode = null; }
-        }
+        let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+        let pieces = [];
+        let activePiece = null;
+        let mouseX = 0, mouseY = 0;
 
-        const SHAPES = [[[1,1],[1,1]], [[1,1,1,1]], [[1,1,1],[0,1,0]], [[1,1,0],[0,1,1]], [[1,0],[1,0],[1,1]]];
-        const COLORS = ['#FF3D00', '#00E676', '#2979FF', '#FFEA00', '#D500F9'];
+        const SHAPES = [
+            { s: [[1,1],[1,1]], c: '#eb4d4b' }, // Red Square
+            { s: [[1,1,1]], c: '#f1c40f' },    // Yellow Line
+            { s: [[1,1],[0,1]], c: '#9b59b6' }, // Purple L
+            { s: [[1,1,1,1]], c: '#3498db' },  // Blue Long
+            { s: [[1,1],[1,1]], c: '#2ecc71' }  // Green Square
+        ];
 
-        function spawn() {
-            pieces = [0,1,2].map(i => ({
-                s: SHAPES[Math.floor(Math.random()*SHAPES.length)],
-                c: COLORS[Math.floor(Math.random()*COLORS.length)],
-                x: 15 + i * 125, y: BOARD + 40, ox: 15 + i * 125, oy: BOARD + 40
-            }));
-            if(checkGameOver()) endGame();
-        }
-
-        function draw() {
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            // Grid
-            for(let r=0; r<DIM; r++) for(let c=0; c<DIM; c++) {
-                ctx.fillStyle = '#1a2234';
-                ctx.beginPath(); ctx.roundRect(c*CELL+2, r*CELL+2, CELL-4, CELL-4, 8); ctx.fill();
-                if(grid[r][c]) drawB(c*CELL, r*CELL, grid[r][c], 1);
+        function createPieces() {
+            pieces = [];
+            for(let i=0; i<3; i++) {
+                let rand = SHAPES[Math.floor(Math.random()*SHAPES.length)];
+                pieces.push({
+                    shape: rand.s,
+                    color: rand.c,
+                    x: (window.innerWidth/2 - 150) + (i * 110),
+                    y: window.innerHeight - 180,
+                    origX: (window.innerWidth/2 - 150) + (i * 110),
+                    origY: window.innerHeight - 180,
+                    isDragging: false
+                });
             }
-            // Ghost & Dragging
-            if(dragging) {
-                let gx = Math.round(dragging.cx/CELL), gy = Math.round(dragging.cy/CELL);
-                if(canPlace(dragging.s, gx, gy)) {
-                    dragging.s.forEach((row,r)=>row.forEach((v,c)=>{
-                        if(v) drawB((gx+c)*CELL, (gy+r)*CELL, dragging.c, 0.3);
+        }
+
+        function drawBlock(x, y, color, context = ctx, size = CELL, alpha = 1) {
+            context.globalAlpha = alpha;
+            context.fillStyle = color;
+            context.beginPath();
+            context.roundRect(x + 2, y + 2, size - 4, size - 4, 6);
+            context.fill();
+            
+            // Glossy Bevel
+            context.fillStyle = 'rgba(255,255,255,0.2)';
+            context.fillRect(x + 5, y + 5, size - 10, size/4);
+            context.globalAlpha = 1;
+        }
+
+        function render() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+
+            // Draw Grid
+            for(let r=0; r<GRID_SIZE; r++) {
+                for(let c=0; c<GRID_SIZE; c++) {
+                    ctx.fillStyle = '#262e3d';
+                    ctx.beginPath();
+                    ctx.roundRect(c*CELL+1, r*CELL+1, CELL-2, CELL-2, 4);
+                    ctx.fill();
+                    if(grid[r][c]) drawBlock(c*CELL, r*CELL, grid[r][c]);
+                }
+            }
+
+            // Ghost Preview
+            if(activePiece) {
+                const rect = canvas.getBoundingClientRect();
+                let gx = Math.round((mouseX - rect.left - (activePiece.shape[0].length * CELL / 2)) / CELL);
+                let gy = Math.round((mouseY - rect.top - (activePiece.shape.length * CELL / 2)) / CELL);
+                
+                if(canPlace(activePiece.shape, gx, gy)) {
+                    activePiece.shape.forEach((row, r) => row.forEach((v, c) => {
+                        if(v) drawBlock((gx+c)*CELL, (gy+r)*CELL, activePiece.color, ctx, CELL, 0.3);
                     }));
                 }
             }
-            pieces.forEach(p => {
-                let x = p === dragging ? p.cx : p.x, y = p === dragging ? p.cy : p.y;
-                let sc = p === dragging ? 1 : 0.6;
-                p.s.forEach((row,r)=>row.forEach((v,c)=>{ if(v) drawB(x+c*CELL*sc, y+r*CELL*sc, p.c, 1, sc); }));
-            });
-            updateParticles();
-            requestAnimationFrame(draw);
+
+            requestAnimationFrame(render);
         }
 
-        function drawB(x,y,c,a,sc=1) {
-            ctx.globalAlpha = a; ctx.fillStyle = c;
-            ctx.beginPath(); ctx.roundRect(x+2, y+2, (CELL*sc)-4, (CELL*sc)-4, 6*sc); ctx.fill();
-            ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(x+5, y+5, (CELL*sc)/2, 4);
-            ctx.globalAlpha = 1;
-        }
-
-        function canPlace(s, x, y) {
-            return s.every((row,r)=>row.every((v,c)=>{
+        // Logic for piece placement
+        function canPlace(shape, x, y) {
+            return shape.every((row, r) => row.every((v, c) => {
                 if(!v) return true;
-                let nr = y+r, nc = x+c;
-                return nr>=0 && nr<DIM && nc>=0 && nc<DIM && !grid[nr][nc];
+                let nr = y + r, nc = x + c;
+                return nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE && !grid[nr][nc];
             }));
         }
 
+        // Interaction Handling
+        window.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            pieces.forEach(p => {
+                if(touch.clientX > p.x && touch.clientX < p.x + 100 && touch.clientY > p.y && touch.clientY < p.y + 100) {
+                    activePiece = p;
+                    p.isDragging = true;
+                }
+            });
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if(!activePiece) return;
+            mouseX = e.touches[0].clientX;
+            mouseY = e.touches[0].clientY;
+        });
+
+        window.addEventListener('touchend', () => {
+            if(!activePiece) return;
+            const rect = canvas.getBoundingClientRect();
+            let gx = Math.round((mouseX - rect.left - (activePiece.shape[0].length * CELL / 2)) / CELL);
+            let gy = Math.round((mouseY - rect.top - (activePiece.shape.length * CELL / 2)) / CELL);
+
+            if(canPlace(activePiece.shape, gx, gy)) {
+                activePiece.shape.forEach((row, r) => row.forEach((v, c) => {
+                    if(v) grid[gy+r][gx+c] = activePiece.color;
+                }));
+                score += 10;
+                scoreDisplay.innerText = score;
+                pieces = pieces.filter(p => p !== activePiece);
+                if(pieces.length === 0) createPieces();
+                if(navigator.vibrate) navigator.vibrate(50);
+                checkLines();
+            }
+            activePiece = null;
+        });
+
         function checkLines() {
-            let rL = [], cL = [];
-            for(let i=0; i<DIM; i++) {
-                if(grid[i].every(x=>x)) rL.push(i);
-                if(grid.every(r=>r[i])) cL.push(i);
-            }
-            rL.forEach(r => { grid[r].fill(null); explode(r, 'h'); });
-            cL.forEach(c => { grid.forEach(r=>r[c]=null); explode(c, 'v'); });
-            if(rL.length || cL.length) {
-                score += (rL.length + cL.length) * 100;
-                document.getElementById('sc').innerText = score;
-                playSfx(880, 'square', 0.2);
-                if(score > level * 500) { level++; document.getElementById('lvl').innerText = level; }
-            }
-        }
-
-        function explode(idx, dir) {
-            for(let i=0; i<20; i++) particles.push({
-                x: dir==='h'?Math.random()*BOARD:idx*CELL+20, y: dir==='v'?Math.random()*BOARD:idx*CELL+20,
-                vx:(Math.random()-0.5)*8, vy:(Math.random()-0.5)*8, a:1, c:varName = COLORS[Math.floor(Math.random()*5)]
-            });
-        }
-
-        function updateParticles() {
-            particles.forEach((p,i) => {
-                p.x+=p.vx; p.y+=p.vy; p.a-=0.02;
-                if(p.a<=0) particles.splice(i,1);
-                else { ctx.globalAlpha=p.a; ctx.fillStyle=p.c; ctx.fillRect(p.x,p.y,3,3); ctx.globalAlpha=1; }
-            });
-        }
-
-        function checkGameOver() {
-            return pieces.every(p => {
-                for(let r=0; r<=DIM-p.s.length; r++) for(let c=0; c<=DIM-p.s[0].length; c++) 
-                    if(canPlace(p.s, c, r)) return false;
-                return true;
-            });
-        }
-
-        function endGame() {
-            document.getElementById('game-over').style.display = 'flex';
-            document.getElementById('final').innerText = "Score: " + score;
-            if(score > high) localStorage.setItem('sb_hi', score);
-        }
-
-        // Controls
-        canvas.onmousedown = canvas.ontouchstart = (e) => {
-            let p = getP(e);
-            pieces.forEach(pc => {
-                if(p.x>=pc.x && p.x<=pc.x+80 && p.y>=pc.y && p.y<=pc.y+80) {
-                    dragging = pc; offset = {x:p.x-pc.x, y:p.y-pc.y};
-                    playSfx(440, 'sine', 0.05);
+            let cleared = 0;
+            // Rows
+            for(let r=0; r<GRID_SIZE; r++) {
+                if(grid[r].every(v => v !== null)) {
+                    grid[r] = Array(GRID_SIZE).fill(null);
+                    cleared++;
                 }
-            });
-        };
-        window.onmousemove = window.ontouchmove = (e) => {
-            if(dragging) { let p = getP(e); dragging.cx = p.x-offset.x; dragging.cy = p.y-offset.y; }
-        };
-        window.onmouseup = window.ontouchend = () => {
-            if(dragging) {
-                let gx = Math.round(dragging.cx/CELL), gy = Math.round(dragging.cy/CELL);
-                if(canPlace(dragging.s, gx, gy)) {
-                    dragging.s.forEach((row,r)=>row.forEach((v,c)=>{ if(v) grid[gy+r][gx+c]=dragging.c; }));
-                    pieces = pieces.filter(p => p !== dragging);
-                    checkLines(); if(navigator.vibrate) navigator.vibrate(40);
-                    if(!pieces.length) spawn(); else if(checkGameOver()) endGame();
-                }
-                dragging = null;
             }
-        };
-        function getP(e) { 
-            let r = canvas.getBoundingClientRect(), t = e.touches ? e.touches[0] : e;
-            return {x: t.clientX-r.left, y: t.clientY-r.top};
+            // Cols
+            for(let c=0; c<GRID_SIZE; c++) {
+                if(grid.every(r => r[c] !== null)) {
+                    grid.forEach(r => r[c] = null);
+                    cleared++;
+                }
+            }
+            if(cleared > 0) score += cleared * 100;
         }
 
-        document.getElementById('hi').innerText = high;
-        spawn(); draw();
+        createPieces();
+        render();
     </script>
 </body>
 </html>
