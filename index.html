@@ -1,324 +1,254 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Shubham Block</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHUBHAM BLOCK</title>
 
 <style>
-/* ===================== RESET ===================== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: "Segoe UI", Roboto, Arial, sans-serif;
-  user-select: none;
+html,body{
+  margin:0;
+  background:#0b0b14;
+  color:#fff;
+  font-family:Arial, sans-serif;
+  display:flex;
+  justify-content:center;
 }
+#wrap{ width:380px; padding:10px }
+canvas{ display:block; margin:auto; }
 
-body {
-  background: radial-gradient(circle at top, #1b1b2b, #0e0e16);
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+.neon{
+  font-size:34px;
+  font-weight:900;
+  text-align:center;
+  color:#6cf;
+  text-shadow:
+    0 0 8px #6cf,
+    0 0 18px #4df,
+    0 0 30px #39f;
 }
-
-/* ===================== GAME CONTAINER ===================== */
-#game {
-  width: min(420px, 95vw);
+button{
+  background:#5f6cff;
+  color:white;
+  border:none;
+  border-radius:22px;
+  padding:10px 24px;
+  font-size:16px;
+  margin-top:20px;
 }
-
-/* ===================== TOP BAR ===================== */
-.top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 8px;
+#home,#gameover{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  background:#0b0b14;
 }
-
-.score-box {
-  background: #20203a;
-  border-radius: 12px;
-  padding: 6px 12px;
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: bold;
-}
-
-.score-box span {
-  color: #ffd369;
-}
-
-.icon {
-  font-size: 20px;
-  opacity: 0.85;
-}
-
-/* ===================== HOME SCREEN ===================== */
-#home {
-  text-align: center;
-  padding: 30px 10px;
-}
-
-#home h1 {
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: 1px;
-}
-
-#home p {
-  opacity: 0.8;
-  margin-top: 8px;
-}
-
-button {
-  margin-top: 24px;
-  padding: 12px 26px;
-  border: none;
-  border-radius: 30px;
-  background: linear-gradient(135deg,#5f8cff,#7a6cff);
-  color: #fff;
-  font-size: 16px;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
-}
-
-/* ===================== GRID ===================== */
-#board {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 4px;
-  background: #111125;
-  padding: 8px;
-  border-radius: 16px;
-  box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
-}
-
-.cell {
-  width: 100%;
-  aspect-ratio: 1;
-  background: #1c1c34;
-  border-radius: 6px;
-}
-
-/* ===================== BLOCK COLORS ===================== */
-.block {
-  border-radius: 6px;
-  box-shadow: inset -2px -2px 6px rgba(0,0,0,0.3),
-              inset 2px 2px 6px rgba(255,255,255,0.2),
-              0 6px 10px rgba(0,0,0,0.4);
-}
-
-.blue { background: linear-gradient(#4da3ff,#1b6ddf); }
-.orange { background: linear-gradient(#ffb14d,#d66a00); }
-.green { background: linear-gradient(#6dff8d,#0e9f52); }
-.purple { background: linear-gradient(#b07cff,#5a2dbf); }
-.red { background: linear-gradient(#ff6b6b,#c62828); }
-.yellow { background: linear-gradient(#ffe066,#e6b800); }
-.cyan { background: linear-gradient(#5fffff,#00bcd4); }
-
-/* ===================== BOTTOM PIECES ===================== */
-#pieces {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 16px;
-}
-
-.piece {
-  display: grid;
-  gap: 4px;
-  padding: 6px;
-  animation: pulse 1.8s infinite ease-in-out;
-}
-
-@keyframes pulse {
-  0%,100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-/* ===================== GAME OVER ===================== */
-#gameOver {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.85);
-  display: none;
-  justify-content: center;
-  align-items: center;
-}
-
-#gameOver .box {
-  background: #1c1c34;
-  padding: 30px;
-  border-radius: 20px;
-  text-align: center;
-}
-
-#gameOver h2 {
-  font-size: 28px;
-  margin-bottom: 12px;
-}
-
-/* ===================== DRAG ===================== */
-.dragging {
-  position: fixed;
-  pointer-events: none;
-  transform: scale(1.1);
-  z-index: 999;
-}
+#gameover{ display:none }
 </style>
 </head>
 
 <body>
-<div id="game">
-
-  <!-- TOP BAR -->
-  <div class="top-bar">
-    <div class="score-box"><span>👑</span><span id="highScore">8767</span></div>
-    <div class="score-box">Score: <span id="score">480</span></div>
-    <div class="icon">⚙️</div>
-  </div>
-
-  <!-- HOME -->
+<div id="wrap">
   <div id="home">
-    <h1>Shubham Block</h1>
-    <p>Relaxing!</p>
-    <button onclick="startGame()">Play</button>
+    <div class="neon">SHUBHAM BLOCK</div>
+    <div style="opacity:.7;margin-top:6px">Relaxing!</div>
+    <button onclick="start()">Play</button>
   </div>
 
-  <!-- BOARD -->
-  <div id="board" style="display:none"></div>
+  <canvas id="game" width="360" height="520"></canvas>
 
-  <!-- PIECES -->
-  <div id="pieces" style="display:none"></div>
-
-</div>
-
-<!-- GAME OVER -->
-<div id="gameOver">
-  <div class="box">
+  <div id="gameover">
     <h2>Game Over</h2>
-    <p>Your Score: <span id="finalScore"></span></p>
+    <p>Score: <span id="final"></span></p>
     <button onclick="location.reload()">Restart</button>
   </div>
 </div>
 
 <script>
-/* ===================== GAME DATA ===================== */
-const board = document.getElementById("board");
-const piecesDiv = document.getElementById("pieces");
-const scoreEl = document.getElementById("score");
-const highScoreEl = document.getElementById("highScore");
+/* ================== CORE ================== */
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const SIZE = 8, CELL = 40;
+const GRID_Y = 80;
+let grid, score=0, dragging=null, ghost=null;
+let particles=[];
+const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
 
-let grid = Array(64).fill(null);
-let score = 480;
-let highScore = localStorage.getItem("shubham_high") || 8767;
-
-highScoreEl.textContent = highScore;
-
-/* ===================== SOUNDS (PLACEHOLDER) ===================== */
-function block_drag_sound(){}
-function block_place_sound(){}
-function line_clear_sound(){}
-function game_over_sound(){}
-
-/* ===================== SHAPES ===================== */
-const SHAPES = [
-  [[1,1],[1,1]],
-  [[1,1,1]],
-  [[1],[1],[1]],
-  [[1,1,1],[0,1,0]],
-  [[1,1,0],[0,1,1]]
+/* ================== DATA ================== */
+const COLORS=[
+ ["#4da3ff","#1b6ddf"],
+ ["#ffb14d","#d66a00"],
+ ["#6dff8d","#0e9f52"],
+ ["#b07cff","#5a2dbf"],
+ ["#ff6b6b","#c62828"],
+ ["#ffe066","#e6b800"],
+ ["#5fffff","#00bcd4"]
 ];
 
-const COLORS = ["blue","orange","green","purple","red","yellow","cyan"];
+const SHAPES=[
+ [[1,1],[1,1]],
+ [[1,1,1]],
+ [[1],[1],[1]],
+ [[1,1,1,1]],
+ [[1,1,0],[0,1,1]]
+];
 
-/* ===================== START GAME ===================== */
-function startGame(){
+let pieces=[];
+
+/* ================== SOUND ================== */
+function beep(freq,dur){
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.frequency.value=freq;
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+dur);
+  o.stop(audioCtx.currentTime+dur);
+}
+const soundPlace=()=>beep(700,.08);
+const soundClear=()=>{beep(900,.1);setTimeout(()=>beep(500,.15),100);}
+const soundBad=()=>beep(120,.15);
+
+/* ================== INIT ================== */
+function start(){
   document.getElementById("home").style.display="none";
-  board.style.display="grid";
-  piecesDiv.style.display="flex";
-  createBoard();
-  generatePieces();
+  grid=[...Array(SIZE)].map(()=>Array(SIZE).fill(null));
+  spawnPieces();
+  loop();
 }
 
-/* ===================== CREATE BOARD ===================== */
-function createBoard(){
-  board.innerHTML="";
-  for(let i=0;i<64;i++){
-    const cell=document.createElement("div");
-    cell.className="cell";
-    board.appendChild(cell);
-  }
+/* ================== DRAW ================== */
+function drawBlock(x,y,size,c){
+  const g=ctx.createLinearGradient(x,y,x,y+size);
+  g.addColorStop(0,c[0]); g.addColorStop(1,c[1]);
+  ctx.fillStyle=g;
+  ctx.fillRect(x,y,size,size);
+  ctx.strokeStyle="rgba(255,255,255,.25)";
+  ctx.strokeRect(x+.5,y+.5,size-1,size-1);
 }
 
-/* ===================== GENERATE PIECES ===================== */
-function generatePieces(){
-  piecesDiv.innerHTML="";
-  for(let i=0;i<3;i++){
-    const shape=SHAPES[Math.floor(Math.random()*SHAPES.length)];
-    const color=COLORS[Math.floor(Math.random()*COLORS.length)];
-    const piece=createPiece(shape,color);
-    piecesDiv.appendChild(piece);
-  }
+function drawGrid(){
+  for(let r=0;r<SIZE;r++)
+   for(let c=0;c<SIZE;c++){
+    ctx.fillStyle="#1c1c34";
+    ctx.fillRect(c*CELL,GRID_Y+r*CELL,CELL-2,CELL-2);
+    if(grid[r][c])
+      drawBlock(c*CELL,GRID_Y+r*CELL,CELL-2,grid[r][c]);
+   }
 }
 
-/* ===================== CREATE PIECE ===================== */
-function createPiece(shape,color){
-  const piece=document.createElement("div");
-  piece.className="piece";
-  piece.style.gridTemplateColumns=`repeat(${shape[0].length},1fr)`;
-  piece.dataset.shape=JSON.stringify(shape);
-  piece.dataset.color=color;
-
-  shape.forEach(row=>{
-    row.forEach(cell=>{
-      const b=document.createElement("div");
-      if(cell){
-        b.className=`block ${color}`;
+function drawPieces(){
+  pieces.forEach((p,i)=>{
+    p.shape.forEach((row,r)=>row.forEach((v,c)=>{
+      if(v){
+        drawBlock(40+i*110+c*CELL,420+r*CELL, CELL-4, p.color);
       }
-      piece.appendChild(b);
-    });
+    }));
   });
-
-  piece.addEventListener("pointerdown", startDrag);
-  return piece;
 }
 
-/* ===================== DRAG & DROP ===================== */
-let dragPiece=null;
-
-function startDrag(e){
-  dragPiece=e.currentTarget.cloneNode(true);
-  dragPiece.classList.add("dragging");
-  document.body.appendChild(dragPiece);
-  moveDrag(e);
-  document.addEventListener("pointermove", moveDrag);
-  document.addEventListener("pointerup", endDrag);
-  block_drag_sound();
+/* ================== PARTICLES ================== */
+function spawnParticles(x,y){
+  for(let i=0;i<25;i++)
+    particles.push({
+      x,y,
+      vx:(Math.random()-.5)*6,
+      vy:(Math.random()-.5)*6,
+      life:30
+    });
 }
 
-function moveDrag(e){
-  if(!dragPiece) return;
-  dragPiece.style.left=e.clientX-30+"px";
-  dragPiece.style.top=e.clientY-30+"px";
+function drawParticles(){
+  particles=particles.filter(p=>p.life-- >0);
+  particles.forEach(p=>{
+    ctx.fillStyle="rgba(255,255,255,.8)";
+    ctx.fillRect(p.x+=p.vx,p.y+=p.vy,3,3);
+  });
 }
 
-function endDrag(e){
-  document.removeEventListener("pointermove", moveDrag);
-  document.removeEventListener("pointerup", endDrag);
-  dragPiece.remove();
-  dragPiece=null;
+/* ================== GAME LOGIC ================== */
+function canPlace(shape,r,c){
+  return shape.every((row,i)=>
+    row.every((v,j)=>
+      !v ||
+      (grid[r+i] && grid[r+i][c+j]==null)
+    )
+  );
 }
 
-/* ===================== GAME OVER CHECK ===================== */
-function gameOver(){
-  game_over_sound();
-  document.getElementById("finalScore").textContent=score;
-  document.getElementById("gameOver").style.display="flex";
+function place(shape,r,c,color){
+  let blocks=0;
+  shape.forEach((row,i)=>row.forEach((v,j)=>{
+    if(v){ grid[r+i][c+j]=color; blocks++; }
+  }));
+  score+=blocks*10;
 }
+
+function clearLines(){
+  let rows=[],cols=[];
+  for(let r=0;r<SIZE;r++) if(grid[r].every(v=>v)) rows.push(r);
+  for(let c=0;c<SIZE;c++) if(grid.every(r=>r[c])) cols.push(c);
+  if(rows.length||cols.length){
+    navigator.vibrate([50]);
+    soundClear();
+    let combo=rows.length+cols.length;
+    score+=combo*100*(combo>1?2:1);
+    rows.forEach(r=>{
+      spawnParticles(180,GRID_Y+r*CELL);
+      grid[r].fill(null);
+    });
+    cols.forEach(c=>{
+      spawnParticles(c*CELL,GRID_Y+160);
+      grid.forEach(r=>r[c]=null);
+    });
+  }
+}
+
+/* ================== LOOP ================== */
+function loop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawGrid();
+  drawPieces();
+  drawParticles();
+  requestAnimationFrame(loop);
+}
+
+/* ================== PIECES ================== */
+function spawnPieces(){
+  pieces=[];
+  for(let i=0;i<3;i++)
+    pieces.push({
+      shape:SHAPES[Math.random()*SHAPES.length|0],
+      color:COLORS[Math.random()*COLORS.length|0]
+    });
+}
+
+/* ================== INPUT ================== */
+canvas.addEventListener("pointerdown",e=>{
+  pieces.forEach((p,i)=>{
+    let x=40+i*110,y=420;
+    dragging={p,i,dx:e.offsetX-x,dy:e.offsetY-y};
+  });
+});
+
+canvas.addEventListener("pointerup",e=>{
+  if(!dragging)return;
+  let c=Math.floor(e.offsetX/CELL);
+  let r=Math.floor((e.offsetY-GRID_Y)/CELL);
+  if(canPlace(dragging.p.shape,r,c)){
+    place(dragging.p.shape,r,c,dragging.p.color);
+    pieces.splice(dragging.i,1);
+    navigator.vibrate([50]);
+    soundPlace();
+    clearLines();
+    if(pieces.length==0) spawnPieces();
+  }else{
+    soundBad();
+  }
+  dragging=null;
+});
 </script>
 </body>
 </html>
