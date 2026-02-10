@@ -1,311 +1,253 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SHUBHAM BLOCK</title>
 
 <style>
-*{
-  box-sizing:border-box;
-  user-select:none;
-  -webkit-user-select:none;
-  touch-action:none;
-}
-
+*{box-sizing:border-box;user-select:none;-webkit-user-select:none;touch-action:none}
 body{
-  margin:0;
-  min-height:100dvh;
-  font-family:system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background:radial-gradient(circle at top, #355dff, #142a6b 70%);
-  display:flex;
-  justify-content:center;
-  align-items:flex-start;
-  color:#fff;
+  margin:0;min-height:100dvh;
+  background:radial-gradient(circle at top,#3b6cff,#14235c 70%);
+  font-family:system-ui,sans-serif;
+  display:flex;justify-content:center;align-items:flex-start;color:#fff
 }
-
-#app{
-  width:100%;
-  max-width:420px;
-  padding:16px;
-  text-align:center;
-}
-
-#title{
-  font-size:26px;
-  font-weight:800;
-  letter-spacing:2px;
-  color:#ffcc33;
-  text-shadow:0 0 10px rgba(255,204,51,.6);
-}
-
-#score{
-  font-size:44px;
-  font-weight:900;
-  margin:8px 0 14px;
-}
-
-#boardWrapper{
-  display:flex;
-  justify-content:center;
-}
+#app{width:100%;max-width:420px;padding:16px;text-align:center}
+#title{font-size:26px;font-weight:800;color:#ffcc33;text-shadow:0 0 12px #ffcc3390}
+#score{font-size:42px;font-weight:900;margin:6px 0 12px}
 
 #board{
-  width:75vw;
-  max-width:340px;
-  aspect-ratio:1/1;
+  width:75vw;max-width:340px;aspect-ratio:1/1;
+  margin:0 auto;
   background:#0f1d3f;
-  padding:8px;
-  border-radius:18px;
-  box-shadow:0 12px 30px rgba(0,0,0,.5);
-  display:grid;
-  grid-template-columns:repeat(10,1fr);
-  grid-template-rows:repeat(10,1fr);
-  gap:4px;
+  padding:8px;border-radius:18px;
+  display:grid;grid-template-columns:repeat(10,1fr);
+  gap:4px;box-shadow:0 12px 30px rgba(0,0,0,.5)
 }
-
-.cell{
-  background:linear-gradient(#1e2f66,#0b1738);
-  border-radius:6px;
-}
-
+.cell{background:#1c2d66;border-radius:6px}
 .filled{
-  background:linear-gradient(#ff8c3a,#ff5f00);
+  background:linear-gradient(#ff9b3a,#ff5f00);
   box-shadow:inset 0 2px 2px rgba(255,255,255,.4),
-             inset 0 -2px 4px rgba(0,0,0,.4);
+             inset 0 -2px 4px rgba(0,0,0,.4)
 }
+.ghost{background:#ffffff30}
 
-#tray{
-  margin-top:18px;
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
+#tray{margin-top:18px;display:flex;justify-content:space-between;gap:10px}
+.shape{display:grid;gap:4px}
+.block{
+  width:26px;height:26px;border-radius:6px;
+  background:linear-gradient(#caa8ff,#7c4dff)
 }
-
-.shape{
-  display:grid;
-  gap:4px;
-}
-
-.shapeBlock{
-  width:26px;
-  height:26px;
-  border-radius:6px;
-  background:linear-gradient(#c7a6ff,#7c4dff);
-  box-shadow:inset 0 2px 2px rgba(255,255,255,.5),
-             inset 0 -2px 4px rgba(0,0,0,.4);
-}
-
 .dragging{
-  position:fixed;
-  pointer-events:none;
-  z-index:9999;
+  position:fixed;pointer-events:none;z-index:9999;
   transform:scale(1.08);
-  filter:drop-shadow(0 12px 20px rgba(0,0,0,.6));
+  filter:drop-shadow(0 12px 20px rgba(0,0,0,.6))
 }
+
+#topBar{display:flex;justify-content:space-between;align-items:center}
+#settings{cursor:pointer}
+
+#overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.65);
+  display:none;align-items:center;justify-content:center
+}
+#overlayBox{
+  background:#1a2b66;padding:20px;border-radius:16px
+}
+button{padding:10px 18px;border:none;border-radius:10px;font-size:16px}
 </style>
 </head>
 
 <body>
 <div id="app">
-  <div id="title">SHUBHAM BLOCK</div>
-  <div id="score">0</div>
-
-  <div id="boardWrapper">
-    <div id="board"></div>
+  <div id="topBar">
+    <div id="title">SHUBHAM BLOCK</div>
+    <div id="settings">🔊</div>
   </div>
-
+  <div id="score">0</div>
+  <div id="board"></div>
   <div id="tray"></div>
 </div>
 
+<div id="overlay">
+  <div id="overlayBox">
+    <h2>GAME OVER</h2>
+    <p id="final"></p>
+    <button onclick="restart()">REPLAY</button>
+  </div>
+</div>
+
+<audio id="bgm" src="music.mp3" loop></audio>
+<audio id="put" src="put.mp3"></audio>
+<audio id="blast" src="blast.mp3"></audio>
+
 <script>
-/* =======================
-   BASIC STATE
-======================= */
-const GRID_SIZE = 10;
-let board = Array.from({length:GRID_SIZE},()=>Array(GRID_SIZE).fill(0));
-let score = 0;
+/* ---------- STATE ---------- */
+const SIZE=10;
+let board=[...Array(SIZE)].map(()=>Array(SIZE).fill(0));
+let score=0,hi=+localStorage.getItem("hi")||0;
+let soundOn=true;
 
-const boardEl = document.getElementById("board");
-const trayEl  = document.getElementById("tray");
-const scoreEl = document.getElementById("score");
+const boardEl=document.getElementById("board");
+const trayEl=document.getElementById("tray");
+const scoreEl=document.getElementById("score");
+const overlay=document.getElementById("overlay");
+const final=document.getElementById("final");
 
-/* =======================
-   SHAPES (MATRICES)
-======================= */
-const SHAPES = [
-  [[1]],
-  [[1,1]],
-  [[1,1,1]],
-  [[1],[1],[1]],
-  [[1,1],[1,1]],
-  [[1,0],[1,1]],
-  [[0,1],[1,1]],
-  [[1,1,1],[0,1,0]],
-  [[1,1,0],[0,1,1]],
-  [[0,1,1],[1,1,0]]
+const bgm=document.getElementById("bgm");
+const putS=document.getElementById("put");
+const blastS=document.getElementById("blast");
+
+/* ---------- SHAPES ---------- */
+const SHAPES=[
+ [[1]],[[1,1]],[[1,1,1]],[[1],[1],[1]],
+ [[1,1],[1,1]],
+ [[1,0],[1,1]],[[0,1],[1,1]],
+ [[1,1,1],[0,1,0]],
+ [[1,1,0],[0,1,1]],
+ [[0,1,1],[1,1,0]]
 ];
+let trayShapes=[];
 
-let trayShapes = [];
-
-/* =======================
-   GRID RENDER
-======================= */
-function drawGrid(){
+/* ---------- RENDER ---------- */
+function drawBoard(ghost=null){
   boardEl.innerHTML="";
-  for(let r=0;r<GRID_SIZE;r++){
-    for(let c=0;c<GRID_SIZE;c++){
-      const cell=document.createElement("div");
-      cell.className="cell"+(board[r][c]?" filled":"");
-      boardEl.appendChild(cell);
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      const d=document.createElement("div");
+      d.className="cell"+(board[r][c]?" filled":"");
+      if(ghost && ghost.some(p=>p[0]==r&&p[1]==c)) d.classList.add("ghost");
+      boardEl.appendChild(d);
     }
   }
 }
-
-/* =======================
-   TRAY
-======================= */
-function generateTray(){
+function renderTray(){
+  trayEl.innerHTML="";
+  trayShapes.forEach((s,i)=>{
+    const el=document.createElement("div");
+    el.className="shape";el.dataset.i=i;
+    el.style.gridTemplateColumns=`repeat(${s[0].length},26px)`;
+    s.forEach(r=>r.forEach(v=>{
+      const b=document.createElement("div");
+      b.className="block";if(!v)b.style.visibility="hidden";
+      el.appendChild(b);
+    }));
+    trayEl.appendChild(el);
+  });
+}
+function genTray(){
   trayShapes=[];
-  for(let i=0;i<3;i++){
+  for(let i=0;i<3;i++)
     trayShapes.push(JSON.parse(JSON.stringify(
       SHAPES[Math.floor(Math.random()*SHAPES.length)]
     )));
-  }
   renderTray();
 }
 
-function renderTray(){
-  trayEl.innerHTML="";
-  trayShapes.forEach((shape,idx)=>{
-    const s=document.createElement("div");
-    s.className="shape";
-    s.dataset.index=idx;
-    s.style.gridTemplateColumns=`repeat(${shape[0].length},26px)`;
+/* ---------- DRAG ---------- */
+let dragEl=null,dragShape=null,dragIndex=null,px=0,py=0;
 
-    shape.forEach(row=>{
-      row.forEach(v=>{
-        const b=document.createElement("div");
-        b.className="shapeBlock";
-        if(!v) b.style.visibility="hidden";
-        s.appendChild(b);
-      });
-    });
-    trayEl.appendChild(s);
-  });
-}
-
-/* =======================
-   DRAG SYSTEM (60 FPS)
-======================= */
-let dragging=null;
-let dragShape=null;
-let dragIndex=null;
-let dragX=0, dragY=0;
-
-function startDrag(e,index){
-  dragShape=trayShapes[index];
-  dragIndex=index;
-
-  dragging=document.createElement("div");
-  dragging.className="dragging shape";
-  dragging.style.gridTemplateColumns=`repeat(${dragShape[0].length},26px)`;
-
-  dragShape.forEach(row=>{
-    row.forEach(v=>{
-      const b=document.createElement("div");
-      b.className="shapeBlock";
-      if(!v) b.style.visibility="hidden";
-      dragging.appendChild(b);
-    });
-  });
-
-  document.body.appendChild(dragging);
+function startDrag(e,i){
+  dragShape=trayShapes[i];dragIndex=i;
+  dragEl=document.createElement("div");
+  dragEl.className="dragging shape";
+  dragEl.style.gridTemplateColumns=`repeat(${dragShape[0].length},26px)`;
+  dragShape.forEach(r=>r.forEach(v=>{
+    const b=document.createElement("div");
+    b.className="block";if(!v)b.style.visibility="hidden";
+    dragEl.appendChild(b);
+  }));
+  document.body.appendChild(dragEl);
   updatePointer(e);
 }
-
-function updatePointer(e){
-  dragX=e.clientX;
-  dragY=e.clientY;
-}
-
-function placeShape(gridX,gridY){
-  for(let r=0;r<dragShape.length;r++){
-    for(let c=0;c<dragShape[0].length;c++){
-      if(dragShape[r][c]){
-        if(gridX+c<0||gridY+r<0||
-           gridX+c>=GRID_SIZE||gridY+r>=GRID_SIZE||
-           board[gridY+r][gridX+c]) return false;
+function updatePointer(e){px=e.clientX;py=e.clientY}
+function canPlace(shape,x,y){
+  let ghost=[];
+  for(let r=0;r<shape.length;r++)
+    for(let c=0;c<shape[0].length;c++)
+      if(shape[r][c]){
+        if(x+c<0||y+r<0||x+c>=SIZE||y+r>=SIZE||board[y+r][x+c])return null;
+        ghost.push([y+r,x+c]);
       }
-    }
-  }
-  for(let r=0;r<dragShape.length;r++){
-    for(let c=0;c<dragShape[0].length;c++){
-      if(dragShape[r][c]){
-        board[gridY+r][gridX+c]=1;
-      }
-    }
-  }
-  score+=10;
-  scoreEl.textContent=score;
-  trayShapes.splice(dragIndex,1);
-  if(trayShapes.length===0) generateTray();
-  else renderTray();
-  return true;
+  return ghost;
 }
-
 function endDrag(){
-  if(!dragging) return;
+  if(!dragEl) return;
   const rect=boardEl.getBoundingClientRect();
-  const size=rect.width/GRID_SIZE;
-  const gx=Math.floor((dragX-rect.left)/size);
-  const gy=Math.floor((dragY-rect.top)/size);
-
-  if(!placeShape(gx,gy)){
-    // invalid → just discard drag
+  const cell=rect.width/SIZE;
+  const gx=Math.floor((px-rect.left)/cell);
+  const gy=Math.floor((py-rect.top)/cell);
+  const ghost=canPlace(dragShape,gx,gy);
+  if(ghost){
+    ghost.forEach(p=>board[p[0]][p[1]]=1);
+    score+=10;
+    trayShapes.splice(dragIndex,1);
+    if(soundOn) putS.play();
+    clearLines();
+    if(trayShapes.length===0) genTray(); else renderTray();
   }
-  dragging.remove();
-  dragging=null;
-  dragShape=null;
-  dragIndex=null;
-  drawGrid();
+  dragEl.remove();dragEl=null;dragShape=null;
+  drawBoard();checkGameOver();
 }
 
-/* =======================
-   GAME LOOP
-======================= */
+/* ---------- GAME LOGIC ---------- */
+function clearLines(){
+  let cleared=0;
+  for(let i=0;i<SIZE;i++){
+    if(board[i].every(v=>v)){board[i].fill(0);cleared++;}
+    if(board.every(r=>r[i])){board.forEach(r=>r[i]=0);cleared++;}
+  }
+  if(cleared){
+    score+=cleared*100;
+    if(soundOn) blastS.play();
+  }
+  scoreEl.textContent=score;
+}
+function checkGameOver(){
+  for(const s of trayShapes)
+    for(let y=0;y<SIZE;y++)
+      for(let x=0;x<SIZE;x++)
+        if(canPlace(s,x,y)) return;
+  overlay.style.display="flex";
+  final.textContent="Score: "+score;
+}
+function restart(){
+  board=[...Array(SIZE)].map(()=>Array(SIZE).fill(0));
+  score=0;scoreEl.textContent=0;
+  overlay.style.display="none";
+  genTray();drawBoard();
+}
+
+/* ---------- LOOP ---------- */
 function loop(){
-  if(dragging){
-    dragging.style.left=(dragX-dragging.offsetWidth/2)+"px";
-    dragging.style.top =(dragY-dragging.offsetHeight/2)+"px";
+  if(dragEl){
+    dragEl.style.left=(px-dragEl.offsetWidth/2)+"px";
+    dragEl.style.top=(py-dragEl.offsetHeight/2)+"px";
+    const rect=boardEl.getBoundingClientRect();
+    const cell=rect.width/SIZE;
+    const gx=Math.floor((px-rect.left)/cell);
+    const gy=Math.floor((py-rect.top)/cell);
+    drawBoard(canPlace(dragShape,gx,gy));
   }
   requestAnimationFrame(loop);
 }
 
-/* =======================
-   EVENTS
-======================= */
+/* ---------- EVENTS ---------- */
 trayEl.addEventListener("pointerdown",e=>{
   const el=e.target.closest(".shape");
-  if(el){
-    startDrag(e,Number(el.dataset.index));
-  }
+  if(el){bgm.play();startDrag(e,Number(el.dataset.i))}
 },{passive:false});
+window.addEventListener("pointermove",e=>dragEl&&updatePointer(e),{passive:false});
+window.addEventListener("pointerup",endDrag);
 
-window.addEventListener("pointermove",e=>{
-  if(dragging) updatePointer(e);
-},{passive:false});
+document.getElementById("settings").onclick=()=>{
+  soundOn=!soundOn;
+  if(!soundOn) bgm.pause();
+};
 
-window.addEventListener("pointerup",()=>{
-  endDrag();
-});
-
-/* =======================
-   INIT
-======================= */
-drawGrid();
-generateTray();
-loop();
+/* ---------- INIT ---------- */
+drawBoard();genTray();loop();
 </script>
 </body>
 </html>
