@@ -1,288 +1,294 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Shubham's Block Game</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Shubham Block Game</title>
+
 <style>
 :root{
   --bg:#3f568f;
-  --board:#0f1a34;
-  --cell:#16244d;
-  --glow:#6ee7ff;
+  --grid:#1e2a4f;
+  --cell:#22335f;
+  --glow:#6fe6ff;
 }
-*{box-sizing:border-box;font-family:sans-serif}
+*{box-sizing:border-box; touch-action:none;}
 body{
   margin:0;
   background:var(--bg);
+  font-family:system-ui, sans-serif;
   color:#fff;
-  user-select:none;
-  touch-action:none;
+  text-align:center;
 }
-.top{
+
+/* HEADER */
+.header{
   display:flex;
   justify-content:space-between;
-  padding:10px 20px;
-  font-weight:bold;
+  padding:12px 20px;
+  font-weight:700;
 }
-.score{display:flex;gap:6px;align-items:center}
+
+/* GRID */
 .board-wrap{
   display:flex;
   justify-content:center;
 }
 .board{
-  position:relative;
+  margin-top:10px;
+  background:var(--grid);
   padding:10px;
-  border-radius:20px;
+  border-radius:18px;
   box-shadow:0 0 25px var(--glow);
-  outline:3px dotted var(--glow);
-  background:var(--board);
 }
 .grid{
   display:grid;
-  grid-template-columns:repeat(10,1fr);
-  gap:6px;
+  grid-template-columns:repeat(10,32px);
+  grid-template-rows:repeat(10,32px);
+  gap:4px;
 }
 .cell{
-  width:30px;height:30px;
+  width:32px;height:32px;
   background:var(--cell);
-  border-radius:6px;
+  border-radius:8px;
 }
-.cell.filled{background:var(--c)}
-.cell.ghost{outline:2px dashed #fff8;background:#ffffff22}
-.pieces{
+.cell.filled{
+  box-shadow:inset -3px -3px 6px rgba(255,255,255,.2);
+}
+.ghost{
+  opacity:.4;
+  outline:2px dashed #fff;
+}
+
+/* SHAPES */
+.shapes{
   display:flex;
-  justify-content:center;
-  gap:40px;
-  margin-top:30px;
+  justify-content:space-around;
+  margin:30px 10px;
 }
-.piece{
+.shape{
   display:grid;
   gap:4px;
-  cursor:grab;
 }
 .block{
-  width:30px;height:30px;
-  border-radius:6px;
-  background:var(--c);
-  box-shadow:inset -3px -3px 0 #0004;
+  width:32px;height:32px;
+  border-radius:8px;
+  box-shadow:inset -3px -3px 6px rgba(255,255,255,.3);
+}
+
+/* COLORS */
+.c1{background:#9b5cff;}
+.c2{background:#ff9f43;}
+.c3{background:#54a0ff;}
+.c4{background:#2ecc71;}
+
+/* GAME OVER */
+.overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
 }
 .popup{
-  position:fixed;inset:0;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background:#0007;
-}
-.card{
-  background:#263a6b;
+  background:#22335f;
   padding:25px;
-  border-radius:20px;
-  width:260px;
-  text-align:center;
+  border-radius:16px;
 }
-.btn{
-  margin-top:12px;
-  padding:14px;
-  border-radius:12px;
-  background:#4fa6ff;
-  font-weight:bold;
+.popup button{
+  margin-top:15px;
+  padding:10px 20px;
+  font-size:16px;
+  border:none;
+  border-radius:10px;
 }
-.btn:active{transform:scale(.95)}
-.hidden{display:none}
 </style>
 </head>
 <body>
 
-<div class="top">
-  <div class="score">👑 <span id="score">0</span></div>
-  <div id="level">LEVEL 1</div>
+<div class="header">
+  <div>👑 <span id="score">0</span></div>
+  <div>LEVEL 1</div>
 </div>
 
 <div class="board-wrap">
   <div class="board">
-    <div class="grid" id="grid"></div>
+    <div id="grid" class="grid"></div>
   </div>
 </div>
 
-<div class="pieces" id="pieces"></div>
+<div class="shapes" id="shapes"></div>
 
-<!-- DIFFICULTY -->
-<div class="popup" id="diff">
-  <div class="card">
-    <h3>Select Difficulty</h3>
-    <div class="btn" onclick="startGame(0)">LOW</div>
-    <div class="btn" onclick="startGame(1)">MEDIUM</div>
-    <div class="btn" onclick="startGame(2)">HIGH</div>
-  </div>
-</div>
-
-<!-- GAME OVER -->
-<div class="popup hidden" id="over">
-  <div class="card">
+<div class="overlay" id="gameOver">
+  <div class="popup">
     <h2>GAME OVER</h2>
-    <div class="btn" onclick="location.reload()">REPLAY</div>
+    <p>Score: <span id="finalScore"></span></p>
+    <button onclick="restart()">Replay</button>
   </div>
 </div>
-
-<audio id="sndPlace" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
-<audio id="sndClear" src="https://assets.mixkit.co/active_storage/sfx/2898/2898-preview.mp3"></audio>
-<audio id="sndOver" src="https://assets.mixkit.co/active_storage/sfx/1354/1354-preview.mp3"></audio>
 
 <script>
-const grid=document.getElementById("grid");
-const piecesDiv=document.getElementById("pieces");
-const scoreEl=document.getElementById("score");
-const levelEl=document.getElementById("level");
-const sndPlace=document.getElementById("sndPlace");
-const sndClear=document.getElementById("sndClear");
-const sndOver=document.getElementById("sndOver");
+const gridEl = document.getElementById("grid");
+const shapesEl = document.getElementById("shapes");
+const scoreEl = document.getElementById("score");
+const gameOverEl = document.getElementById("gameOver");
+const finalScoreEl = document.getElementById("finalScore");
 
-let cells=[],board=[],score=0,level=1;
-let drag=null,ghost=[];
+let grid = Array(100).fill(null);
+let score = 0;
+let dragShape = null;
+let ghostCells = [];
 
-const shapes=[
- [[1,1,1]],
- [[1],[1],[1]],
- [[1,1],[1,0]],
- [[1,1],[0,1]],
- [[1,1],[1,1]]
+const COLORS=["c1","c2","c3","c4"];
+const SHAPES=[
+ [[0,0],[1,0],[2,0]],          // line
+ [[0,0],[0,1],[1,1]],          // L
+ [[0,0],[1,0],[0,1],[1,1]],    // square
+ [[0,0],[1,0],[2,0],[1,1]]     // T
 ];
-const colors=["#6cff7a","#ff9f43","#5dade2","#c77dff"];
 
-for(let i=0;i<100;i++){
-  const d=document.createElement("div");
-  d.className="cell";
-  grid.appendChild(d);
-  cells.push(d);
-  board.push(null);
-}
-
-function startGame(d){
-  document.getElementById("diff").classList.add("hidden");
-  spawnPieces();
-}
-
-function spawnPieces(){
-  piecesDiv.innerHTML="";
-  for(let i=0;i<3;i++){
-    const s=shapes[Math.floor(Math.random()*shapes.length)];
-    const c=colors[Math.floor(Math.random()*colors.length)];
-    const p=document.createElement("div");
-    p.className="piece";
-    p.style.setProperty("--c",c);
-    p.dataset.shape=JSON.stringify(s);
-    p.dataset.color=c;
-    s.forEach(r=>r.forEach(v=>{
-      const b=document.createElement("div");
-      b.className="block";
-      if(!v)b.style.visibility="hidden";
-      p.appendChild(b);
-    }));
-    enableDrag(p);
-    piecesDiv.appendChild(p);
+function initGrid(){
+  gridEl.innerHTML="";
+  for(let i=0;i<100;i++){
+    const c=document.createElement("div");
+    c.className="cell";
+    gridEl.appendChild(c);
   }
 }
 
-function enableDrag(p){
-  p.addEventListener("pointerdown",e=>{
-    drag=p;
-    p.setPointerCapture(e.pointerId);
-  });
-  p.addEventListener("pointermove",e=>{
-    if(!drag)return;
-    showGhost(e.clientX,e.clientY);
-  });
-  p.addEventListener("pointerup",e=>{
-    if(!drag)return;
-    if(placeGhost()){
-      sndPlace.play();
-      navigator.vibrate?.(30);
-      p.remove();
-      if(!piecesDiv.children.length)spawnPieces();
-      checkLines();
-    }
-    clearGhost();
-    drag=null;
-  });
+function createShape(){
+  const shape = SHAPES[Math.floor(Math.random()*SHAPES.length)];
+  const color = COLORS[Math.floor(Math.random()*COLORS.length)];
+  return {shape,color};
 }
 
-function showGhost(x,y){
-  clearGhost();
-  const rect=grid.getBoundingClientRect();
-  const cx=Math.floor((x-rect.left)/36);
-  const cy=Math.floor((y-rect.top)/36);
-  const shape=JSON.parse(drag.dataset.shape);
-  shape.forEach((r,i)=>r.forEach((v,j)=>{
-    if(!v)return;
-    const id=(cy+i)*10+(cx+j);
-    if(id>=0&&id<100&&!board[id]){
-      cells[id].classList.add("ghost");
-      ghost.push(id);
-    }
-  }));
+function renderShapes(){
+  shapesEl.innerHTML="";
+  for(let i=0;i<3;i++){
+    const data=createShape();
+    const s=document.createElement("div");
+    s.className="shape";
+    s.dataset.shape=JSON.stringify(data.shape);
+    s.dataset.color=data.color;
+
+    const maxX=Math.max(...data.shape.map(p=>p[0]));
+    const maxY=Math.max(...data.shape.map(p=>p[1]));
+    s.style.gridTemplateColumns=`repeat(${maxX+1},32px)`;
+
+    data.shape.forEach(p=>{
+      const b=document.createElement("div");
+      b.className="block "+data.color;
+      b.style.gridColumn=p[0]+1;
+      b.style.gridRow=p[1]+1;
+      s.appendChild(b);
+    });
+
+    s.addEventListener("pointerdown",()=>dragShape=s);
+    shapesEl.appendChild(s);
+  }
+}
+
+function canPlace(shape,x,y){
+  return shape.every(p=>{
+    const nx=x+p[0], ny=y+p[1];
+    return nx>=0&&ny>=0&&nx<10&&ny<10&&!grid[ny*10+nx];
+  });
 }
 
 function clearGhost(){
-  ghost.forEach(i=>cells[i].classList.remove("ghost"));
-  ghost=[];
+  ghostCells.forEach(i=>gridEl.children[i].classList.remove("ghost"));
+  ghostCells=[];
 }
 
-function placeGhost(){
-  if(!ghost.length)return false;
-  ghost.forEach(i=>{
-    board[i]=drag.dataset.color;
-    cells[i].style.setProperty("--c",drag.dataset.color);
-    cells[i].classList.add("filled");
+gridEl.addEventListener("pointermove",e=>{
+  if(!dragShape) return;
+  clearGhost();
+  const rect=gridEl.getBoundingClientRect();
+  const x=Math.floor((e.clientX-rect.left)/36);
+  const y=Math.floor((e.clientY-rect.top)/36);
+  const shape=JSON.parse(dragShape.dataset.shape);
+  if(canPlace(shape,x,y)){
+    shape.forEach(p=>{
+      const idx=(y+p[1])*10+(x+p[0]);
+      ghostCells.push(idx);
+      gridEl.children[idx].classList.add("ghost");
+    });
+  }
+});
+
+gridEl.addEventListener("pointerup",e=>{
+  if(!dragShape) return;
+  const rect=gridEl.getBoundingClientRect();
+  const x=Math.floor((e.clientX-rect.left)/36);
+  const y=Math.floor((e.clientY-rect.top)/36);
+  const shape=JSON.parse(dragShape.dataset.shape);
+  const color=dragShape.dataset.color;
+
+  if(canPlace(shape,x,y)){
+    shape.forEach(p=>{
+      const idx=(y+p[1])*10+(x+p[0]);
+      grid[idx]=color;
+      gridEl.children[idx].classList.add("filled",color);
+    });
+    dragShape.remove();
+    score+=10;
+    scoreEl.textContent=score;
+    checkLines();
+    if(shapesEl.children.length===0) renderShapes();
+    if(checkGameOver()) showGameOver();
+  }
+  clearGhost();
+  dragShape=null;
+});
+
+function checkLines(){
+  for(let i=0;i<10;i++){
+    if([...Array(10)].every((_,x)=>grid[i*10+x])){
+      for(let x=0;x<10;x++) grid[i*10+x]=null;
+    }
+    if([...Array(10)].every((_,y)=>grid[y*10+i])){
+      for(let y=0;y<10;y++) grid[y*10+i]=null;
+    }
+  }
+  renderGrid();
+}
+
+function renderGrid(){
+  grid.forEach((c,i)=>{
+    const el=gridEl.children[i];
+    el.className="cell";
+    if(c) el.classList.add("filled",c);
   });
-  score+=10;
-  scoreEl.textContent=score;
+}
+
+function checkGameOver(){
+  const shapes=[...shapesEl.children];
+  for(let s of shapes){
+    const shape=JSON.parse(s.dataset.shape);
+    for(let y=0;y<10;y++)
+      for(let x=0;x<10;x++)
+        if(canPlace(shape,x,y)) return false;
+  }
   return true;
 }
 
-function checkLines(){
-  let cleared=0;
-  for(let r=0;r<10;r++){
-    const row=[...Array(10)].every((_,c)=>board[r*10+c]);
-    if(row){
-      for(let c=0;c<10;c++){
-        board[r*10+c]=null;
-        cells[r*10+c].className="cell";
-      }
-      cleared++;
-    }
-  }
-  if(cleared){
-    sndClear.play();
-    score+=cleared*50;
-    scoreEl.textContent=score;
-    if(score>level*200){
-      level++;
-      levelEl.textContent="LEVEL "+level;
-    }
-  }
-  if(!canMove()){
-    sndOver.play();
-    document.getElementById("over").classList.remove("hidden");
-  }
+function showGameOver(){
+  finalScoreEl.textContent=score;
+  gameOverEl.style.display="flex";
 }
 
-function canMove(){
-  for(let p of piecesDiv.children){
-    const s=JSON.parse(p.dataset.shape);
-    for(let y=0;y<10;y++)for(let x=0;x<10;x++){
-      let ok=true;
-      s.forEach((r,i)=>r.forEach((v,j)=>{
-        if(v){
-          const id=(y+i)*10+(x+j);
-          if(id>=100||board[id])ok=false;
-        }
-      }));
-      if(ok)return true;
-    }
-  }
-  return false;
+function restart(){
+  grid=Array(100).fill(null);
+  score=0;
+  scoreEl.textContent=0;
+  gameOverEl.style.display="none";
+  initGrid();
+  renderShapes();
 }
+
+initGrid();
+renderShapes();
 </script>
 </body>
 </html>
