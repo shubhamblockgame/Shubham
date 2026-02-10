@@ -1,118 +1,106 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Shubham Block</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shubham Block Game</title>
 
 <style>
-*{box-sizing:border-box;font-family:system-ui}
 body{
  margin:0;
  background:#425a94;
+ font-family:system-ui;
  color:#fff;
  text-align:center;
- overflow:hidden;
  user-select:none;
 }
 
 .top{
  display:flex;
  justify-content:space-between;
- padding:14px 20px;
- font-weight:800;
- font-size:18px;
+ padding:12px 20px;
+ font-weight:900;
 }
 
-.board-wrap{
- display:flex;
- justify-content:center;
- margin-top:6px;
-}
+.board-wrap{display:flex;justify-content:center;margin-top:10px}
 
 .board{
  width:330px;
  padding:14px;
- background:#0e1733;
- border-radius:24px;
+ background:#0d1530;
+ border-radius:26px;
  display:grid;
  grid-template-columns:repeat(10,1fr);
  gap:6px;
  box-shadow:
- 0 0 0 3px #6fd8ff inset,
- 0 0 28px rgba(120,220,255,.9);
+  0 0 0 3px #6fd8ff inset,
+  0 0 30px #6fd8ff;
 }
 
 .cell{
- width:100%;
  aspect-ratio:1;
- background:#18244d;
- border-radius:6px;
+ background:#1b2a55;
+ border-radius:8px;
 }
 
 .filled{
  background:var(--c);
  box-shadow:
- inset 0 3px 6px rgba(255,255,255,.5),
- 0 0 6px rgba(0,0,0,.4);
- animation:pop .15s ease;
-}
-
-@keyframes pop{
- from{transform:scale(.7)}
- to{transform:scale(1)}
+  inset 0 4px 8px rgba(255,255,255,.55),
+  inset 0 -4px 8px rgba(0,0,0,.35);
 }
 
 .bottom{
  display:flex;
- justify-content:space-between;
- padding:32px 36px;
+ justify-content:center;
+ gap:50px;
+ padding:35px 0;
 }
 
 .piece{
  display:grid;
  gap:4px;
+ cursor:grab;
  touch-action:none;
 }
 
 .block{
- width:26px;
- height:26px;
- border-radius:6px;
+ width:28px;height:28px;
+ border-radius:7px;
  background:var(--c);
- box-shadow:inset 0 3px 6px rgba(255,255,255,.5);
+ box-shadow:
+  inset 0 4px 8px rgba(255,255,255,.55),
+  inset 0 -4px 8px rgba(0,0,0,.35);
 }
 
-.modal{
+.overlay{
  position:fixed;
  inset:0;
- background:rgba(0,0,0,.6);
+ background:rgba(0,0,0,.7);
  display:flex;
  align-items:center;
  justify-content:center;
- z-index:5;
 }
 
-.box{
- background:#2f4577;
- padding:24px;
+.popup{
+ background:#2f4575;
+ padding:25px;
+ border-radius:18px;
  width:260px;
- border-radius:20px;
 }
 
-.btn{
- background:#5aa8ff;
+.popup h2{margin:0 0 10px}
+
+.popup button{
+ width:100%;
  padding:12px;
- margin:12px 0;
+ margin-top:10px;
+ border:none;
  border-radius:12px;
- font-weight:800;
- cursor:pointer;
- transition:.15s;
+ font-size:16px;
+ font-weight:700;
+ background:#5aa7ff;
+ color:#fff;
 }
-
-.btn:active{transform:scale(.95)}
-
-.hidden{display:none}
 </style>
 </head>
 
@@ -129,166 +117,172 @@ body{
 
 <div class="bottom" id="pieces"></div>
 
-<div class="modal" id="difficulty">
- <div class="box">
-  <h3>Select Difficulty</h3>
-  <div class="btn" onclick="start(1)">LOW</div>
-  <div class="btn" onclick="start(2)">MEDIUM</div>
-  <div class="btn" onclick="start(3)">HIGH</div>
+<div class="overlay" id="menu">
+ <div class="popup">
+  <h2>Select Difficulty</h2>
+  <button onclick="start(0)">LOW</button>
+  <button onclick="start(1)">MEDIUM</button>
+  <button onclick="start(2)">HIGH</button>
  </div>
 </div>
 
-<div class="modal hidden" id="gameover">
- <div class="box">
-  <h3>GAME OVER</h3>
-  <div class="btn" onclick="location.reload()">REPLAY</div>
+<div class="overlay" id="over" style="display:none">
+ <div class="popup">
+  <h2>Game Over</h2>
+  <button onclick="menu()">Replay</button>
  </div>
 </div>
 
 <script>
-/* ---------- SOUND (NO FILES) ---------- */
-const ctx=new AudioContext();
-function beep(freq,dur=.08){
- const o=ctx.createOscillator();
- const g=ctx.createGain();
- o.frequency.value=freq;
- o.connect(g); g.connect(ctx.destination);
- o.start(); g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+dur);
- o.stop(ctx.currentTime+dur);
-}
-
-/* ---------- GAME DATA ---------- */
 const board=document.getElementById("board");
 const piecesBox=document.getElementById("pieces");
 const scoreEl=document.getElementById("score");
 const levelEl=document.getElementById("level");
-const diffModal=document.getElementById("difficulty");
-const gameOver=document.getElementById("gameover");
+const menuBox=document.getElementById("menu");
+const overBox=document.getElementById("over");
 
-let grid=[],score=0,level=1,difficulty=1;
+let grid=[],score=0,level=1,diff=0;
 
-const colors=["#7aff9c","#ff8b3d","#6da8ff","#b58bff"];
 const shapes=[
- [[1,1,1,1]],
- [[1],[1],[1]],
- [[1,1],[1,1]],
- [[1,1,1],[0,1,0]],
- [[1,1,0],[0,1,1]]
+ [[0,0],[1,0],[0,1]],                // L
+ [[0,0],[1,0],[2,0]],                // line
+ [[0,0],[1,0],[0,1],[1,1]],          // square
+ [[0,0],[1,0],[2,0],[1,1]],          // T
+ [[0,0],[1,0],[1,1],[2,1]],          // Z
+ [[0,0],[1,0],[2,0],[1,-1],[1,1]]    // plus
 ];
 
-/* ---------- INIT BOARD ---------- */
-for(let i=0;i<100;i++){
- const c=document.createElement("div");
- c.className="cell";
- board.appendChild(c);
- grid.push(null);
+const colors=["#7b6cff","#ff8b3d","#4fa3ff","#8cff5a","#d07bff"];
+
+function beep(f,d){
+ const a=new AudioContext();
+ const o=a.createOscillator();
+ const g=a.createGain();
+ o.connect(g); g.connect(a.destination);
+ o.frequency.value=f; o.start();
+ g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+d);
 }
 
-/* ---------- START ---------- */
+function vibr(t){navigator.vibrate&&navigator.vibrate(t)}
+
+function menu(){
+ menuBox.style.display="flex";
+ overBox.style.display="none";
+}
+
 function start(d){
- difficulty=d;
- diffModal.classList.add("hidden");
+ diff=d;
+ menuBox.style.display="none";
+ overBox.style.display="none";
+ board.innerHTML=""; piecesBox.innerHTML="";
+ grid=Array(100).fill(0);
+ score=0; level=1;
+ scoreEl.textContent=0;
+ levelEl.textContent=1;
+
+ for(let i=0;i<100;i++){
+  const c=document.createElement("div");
+  c.className="cell";
+  board.appendChild(c);
+ }
  spawn();
 }
 
-/* ---------- SPAWN PIECES ---------- */
 function spawn(){
  piecesBox.innerHTML="";
  for(let i=0;i<3;i++){
-  const s=shapes[Math.floor(Math.random()*shapes.length)];
-  const col=colors[Math.floor(Math.random()*colors.length)];
-  createPiece(s,col);
- }
-}
+  const shape=shapes[Math.random()*shapes.length|0];
+  const color=colors[Math.random()*colors.length|0];
+  const p=document.createElement("div");
+  p.className="piece";
+  p.style.setProperty("--c",color);
+  p.style.gridTemplateColumns=`repeat(${Math.max(...shape.map(s=>s[0]))+1},auto)`;
 
-/* ---------- CREATE PIECE ---------- */
-function createPiece(shape,color){
- const p=document.createElement("div");
- p.className="piece";
- p.shape=shape;
- p.color=color;
- p.style.setProperty("--c",color);
-
- shape.forEach(r=>r.forEach(v=>{
-  if(v){
+  shape.forEach(()=> {
    const b=document.createElement("div");
    b.className="block";
+   b.style.setProperty("--c",color);
    p.appendChild(b);
-  }
- }));
+  });
 
- let ox,oy;
- p.onpointerdown=e=>{
-  beep(400);
-  ox=e.clientX; oy=e.clientY;
-  document.onpointermove=ev=>{
+  let drag=false,ox,oy;
+  p.onpointerdown=e=>{
+   drag=true; ox=e.clientX; oy=e.clientY;
+   p.setPointerCapture(e.pointerId);
    p.style.position="fixed";
-   p.style.left=ev.clientX-ox+"px";
-   p.style.top=ev.clientY-oy+"px";
+   p.style.zIndex=99;
   };
-  document.onpointerup=ev=>{
-   document.onpointermove=null;
-   document.onpointerup=null;
-   drop(p,ev.clientX,ev.clientY);
+
+  p.onpointermove=e=>{
+   if(!drag)return;
+   p.style.left=e.clientX-ox+"px";
+   p.style.top=e.clientY-oy+"px";
   };
- };
 
- piecesBox.appendChild(p);
-}
-
-/* ---------- DROP ---------- */
-function drop(p,x,y){
- const r=board.getBoundingClientRect();
- const size=r.width/10;
- const gx=Math.floor((x-r.left)/size);
- const gy=Math.floor((y-r.top)/size);
-
- if(canPlace(p.shape,gx,gy)){
-  place(p.shape,p.color,gx,gy);
-  beep(800);
-  p.remove();
-  score+=10*difficulty;
-  scoreEl.textContent=score;
-  if(!piecesBox.children.length){
-   level++; levelEl.textContent=level;
-   spawn();
-  }
- }else{
-  p.style.position="";
- }
-}
-
-/* ---------- LOGIC ---------- */
-function canPlace(s,x,y){
- for(let r=0;r<s.length;r++)
-  for(let c=0;c<s[r].length;c++)
-   if(s[r][c]){
-    const i=(y+r)*10+(x+c);
-    if(x+c<0||y+r<0||x+c>=10||y+r>=10||grid[i]) return false;
+  p.onpointerup=e=>{
+   drag=false;
+   const r=board.getBoundingClientRect();
+   if(e.clientX>r.left&&e.clientX<r.right&&e.clientY>r.top&&e.clientY<r.bottom){
+    const s=r.width/10;
+    const x=Math.floor((e.clientX-r.left)/s);
+    const y=Math.floor((e.clientY-r.top)/s);
+    if(place(shape,x,y,color)){
+     p.remove(); score+=shape.length*10;
+     scoreEl.textContent=score;
+     beep(700,.08); vibr(40);
+     if(!piecesBox.children.length) spawn();
+     clearLines(); return;
+    }
    }
+   p.style.position="";
+   p.style.left=""; p.style.top="";
+  };
+  piecesBox.appendChild(p);
+ }
+ if(!canMove()) overBox.style.display="flex";
+}
+
+function place(shape,x,y,c){
+ for(let s of shape){
+  const nx=x+s[0], ny=y+s[1];
+  if(nx<0||ny<0||nx>=10||ny>=10||grid[ny*10+nx]) return false;
+ }
+ shape.forEach(s=>{
+  const i=(y+s[1])*10+(x+s[0]);
+  grid[i]=1;
+  board.children[i].classList.add("filled");
+  board.children[i].style.setProperty("--c",c);
+ });
  return true;
 }
 
-function place(s,color,x,y){
- s.forEach((r,ri)=>r.forEach((v,ci)=>{
-  if(v){
-   const i=(y+ri)*10+(x+ci);
-   grid[i]=color;
-   board.children[i].classList.add("filled");
-   board.children[i].style.setProperty("--c",color);
+function clearLines(){
+ for(let i=0;i<10;i++){
+  let r=true,c=true;
+  for(let j=0;j<10;j++){
+   r&=grid[i*10+j];
+   c&=grid[j*10+i];
   }
- }));
- checkOver();
+  if(r||c){
+   for(let j=0;j<10;j++){
+    grid[r?i*10+j:j*10+i]=0;
+    board.children[r?i*10+j:j*10+i].className="cell";
+   }
+   score+=100; scoreEl.textContent=score;
+   beep(300,.15); vibr(80);
+  }
+ }
+ if(score>level*500){level++;levelEl.textContent=level}
 }
 
-function checkOver(){
- let ok=false;
- [...piecesBox.children].forEach(p=>{
-  for(let y=0;y<10;y++)for(let x=0;x<10;x++)
-   if(canPlace(p.shape,x,y)) ok=true;
- });
- if(!ok) gameOver.classList.remove("hidden");
+function canMove(){
+ return shapes.some(sh=>grid.some((_,i)=>{
+  const x=i%10,y=i/10|0;
+  return place(sh,x,y,"#000");
+ }));
 }
+
+menu();
 </script>
 </body>
 </html>
