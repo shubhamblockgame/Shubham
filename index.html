@@ -2,234 +2,273 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>shubhams blovk</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Shubham Block</title>
 
 <style>
-  body{
-    margin:0;
-    font-family: Arial, sans-serif;
-    background:#3556a8;
-    color:#fff;
-    text-align:center;
-    user-select:none;
-  }
+body{
+  margin:0;
+  background:#3556a8;
+  font-family:Arial,Helvetica,sans-serif;
+  color:#fff;
+  text-align:center;
+  touch-action:none;
+}
 
-  /* ===== HEADER ===== */
-  .top{
-    padding:15px 10px 5px;
-  }
-  .title{
-    font-size:20px;
-    font-weight:bold;
-    letter-spacing:1px;
-    text-transform: lowercase;
-  }
-  .score{
-    font-size:48px;
-    font-weight:bold;
-    margin-top:5px;
-  }
+/* ===== HEADER ===== */
+header{
+  padding:10px 0 4px;
+}
+header h1{
+  margin:0;
+  font-size:18px;
+  letter-spacing:1px;
+}
+#score{
+  font-size:46px;
+  font-weight:bold;
+}
 
-  /* ===== BOARD ===== */
-  #board{
-    margin:15px auto;
-    display:grid;
-    grid-template-columns:repeat(10,1fr);
-    gap:4px;
-    width:320px;
-    background:#1e2a4f;
-    padding:8px;
-    border-radius:10px;
-  }
-  .cell{
-    width:28px;
-    height:28px;
-    background:#111a33;
-    border-radius:4px;
-  }
-  .filled{
-    box-shadow: inset 0 0 0 2px rgba(255,255,255,.15);
-  }
-
-  /* ===== SHAPES ===== */
-  #shapes{
-    display:flex;
-    justify-content:center;
-    gap:20px;
-    margin:15px 0 30px;
-  }
-  .shape{
-    display:grid;
-    gap:3px;
-    cursor:grab;
-  }
-  .block{
-    width:22px;
-    height:22px;
-    border-radius:4px;
-  }
-
+/* ===== CANVAS ===== */
+canvas{
+  display:block;
+  margin:10px auto 5px;
+  background:#1e2a4f;
+  border-radius:14px;
+}
+#status{
+  font-size:12px;
+  opacity:.7;
+  margin-bottom:8px;
+}
 </style>
 </head>
+
 <body>
 
-<div class="top">
-  <div class="title">shubhams blovk</div>
-  <div class="score" id="score">0</div>
-</div>
+<header>
+  <h1>Shubham Block</h1>
+  <div id="score">0</div>
+</header>
 
-<div id="board"></div>
-
-<div id="shapes"></div>
+<canvas id="game"></canvas>
+<div id="status">drag • snap • blast</div>
 
 <script>
-/* ===== BASIC DATA ===== */
-const boardSize = 10;
-const board = document.getElementById("board");
-const shapesDiv = document.getElementById("shapes");
-const scoreText = document.getElementById("score");
+/* =====================================================
+   BASIC SETUP
+===================================================== */
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const SIZE = 10;
+const CELL = Math.floor(Math.min(window.innerWidth,420)/SIZE);
+canvas.width = CELL*SIZE;
+canvas.height = CELL*SIZE + 140;
+
 let score = 0;
+let grid = Array(SIZE*SIZE).fill(null);
 
-let grid = Array(boardSize*boardSize).fill(null);
+/* =====================================================
+   COLORS & SHAPES
+===================================================== */
+const COLORS = ["#4da3ff","#facc15","#a855f7","#22c55e","#fb923c"];
 
-/* ===== COLORS ===== */
-const colors = ["#4da3ff","#f4c430","#a855f7","#22c55e","#fb923c"];
-
-/* ===== SHAPE DEFINITIONS ===== */
 const SHAPES = [
-  [[1,1,1],[0,1,0]],       // T
-  [[1,1],[1,1]],           // square
-  [[1,1,1,1]],             // line
-  [[1,0],[1,0],[1,1]],     // L
-  [[0,1],[1,1],[1,0]]      // Z
+ [[1,1,1],[0,1,0]],     // T
+ [[1,1],[1,1]],         // square
+ [[1,1,1,1]],           // line
+ [[1,0],[1,0],[1,1]],   // L
+ [[0,1],[1,1],[1,0]]    // Z
 ];
 
-/* ===== CREATE BOARD ===== */
-for(let i=0;i<boardSize*boardSize;i++){
-  const c = document.createElement("div");
-  c.className="cell";
-  c.dataset.index=i;
-  board.appendChild(c);
-}
+/* =====================================================
+   PIECES
+===================================================== */
+let pieces = [];
+let dragging = null;
+let offX = 0, offY = 0;
+let ghost = null;
 
-/* ===== CREATE SHAPES ===== */
-function createShapes(){
-  shapesDiv.innerHTML="";
+function newPieces(){
+  pieces=[];
   for(let i=0;i<3;i++){
-    const shape = SHAPES[Math.floor(Math.random()*SHAPES.length)];
-    const color = colors[Math.floor(Math.random()*colors.length)];
-    const el = document.createElement("div");
-    el.className="shape";
-    el.style.gridTemplateColumns=`repeat(${shape[0].length},1fr)`;
-    el.shape = shape;
-    el.color = color;
-
-    shape.forEach(r=>{
-      r.forEach(v=>{
-        const b = document.createElement("div");
-        b.className="block";
-        b.style.background = v?color:"transparent";
-        el.appendChild(b);
-      });
+    pieces.push({
+      shape:SHAPES[Math.floor(Math.random()*SHAPES.length)],
+      color:COLORS[Math.floor(Math.random()*COLORS.length)],
+      x: CELL*(i*3+2),
+      y: CELL*SIZE + 30
     });
-
-    el.onpointerdown = e => startDrag(e,el);
-    shapesDiv.appendChild(el);
   }
 }
 
-/* ===== DRAG SYSTEM ===== */
-let dragging=null, offsetX=0, offsetY=0;
+/* =====================================================
+   DRAW
+===================================================== */
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-function startDrag(e,shape){
-  dragging = shape;
-  offsetX = e.offsetX;
-  offsetY = e.offsetY;
-  shape.style.position="absolute";
-  shape.style.zIndex=1000;
-}
-
-document.onpointermove = e =>{
-  if(!dragging) return;
-  dragging.style.left = (e.pageX-offsetX)+"px";
-  dragging.style.top  = (e.pageY-offsetY)+"px";
-};
-
-document.onpointerup = e =>{
-  if(!dragging) return;
-  const rect = board.getBoundingClientRect();
-  if(e.pageX>rect.left && e.pageX<rect.right &&
-     e.pageY>rect.top && e.pageY<rect.bottom){
-    const x = Math.floor((e.pageX-rect.left)/32);
-    const y = Math.floor((e.pageY-rect.top)/32);
-    if(placeShape(dragging.shape,dragging.color,x,y)){
-      dragging.remove();
-      if(shapesDiv.children.length===0) createShapes();
-    }else{
-      resetShape(dragging);
+  /* board */
+  for(let y=0;y<SIZE;y++){
+    for(let x=0;x<SIZE;x++){
+      const i=y*SIZE+x;
+      ctx.fillStyle = grid[i] || "#111a33";
+      ctx.fillRect(x*CELL+2,y*CELL+2,CELL-4,CELL-4);
     }
-  }else resetShape(dragging);
-  dragging=null;
-};
+  }
 
-function resetShape(s){
-  s.style.position="static";
+  /* ghost preview */
+  if(ghost){
+    ctx.globalAlpha = 0.35;
+    ghost.cells.forEach(i=>{
+      let x=i%SIZE, y=Math.floor(i/SIZE);
+      ctx.fillStyle = ghost.color;
+      ctx.fillRect(x*CELL+4,y*CELL+4,CELL-8,CELL-8);
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  /* pieces */
+  pieces.forEach(p=>{
+    p.shape.forEach((r,ry)=>{
+      r.forEach((v,rx)=>{
+        if(v){
+          ctx.fillStyle=p.color;
+          ctx.fillRect(
+            p.x+rx*CELL+2,
+            p.y+ry*CELL+2,
+            CELL-4,CELL-4
+          );
+        }
+      });
+    });
+  });
 }
 
-/* ===== PLACE SHAPE ===== */
-function placeShape(shape,color,x,y){
+/* =====================================================
+   LOGIC
+===================================================== */
+function canPlace(shape,gx,gy){
   let cells=[];
   for(let r=0;r<shape.length;r++){
     for(let c=0;c<shape[r].length;c++){
       if(shape[r][c]){
-        let nx=x+c, ny=y+r;
-        if(nx<0||ny<0||nx>=10||ny>=10) return false;
-        let idx = ny*10+nx;
-        if(grid[idx]) return false;
+        let nx=gx+c, ny=gy+r;
+        if(nx<0||ny<0||nx>=SIZE||ny>=SIZE) return null;
+        let idx=ny*SIZE+nx;
+        if(grid[idx]) return null;
         cells.push(idx);
       }
     }
   }
-  cells.forEach(i=>{
-    grid[i]=color;
-    board.children[i].style.background=color;
-    board.children[i].classList.add("filled");
-  });
+  return cells;
+}
+
+function placePiece(p,cells){
+  cells.forEach(i=>grid[i]=p.color);
   score += cells.length*10;
-  scoreText.innerText = score;
   clearLines();
-  return true;
+  updateScore();
 }
 
-/* ===== CLEAR ROWS & COLUMNS ===== */
 function clearLines(){
-  for(let r=0;r<10;r++){
-    let row = [];
-    for(let c=0;c<10;c++) row.push(r*10+c);
-    if(row.every(i=>grid[i])){
-      row.forEach(i=>clearCell(i));
-      score+=100;
+  let cleared=false;
+
+  for(let i=0;i<SIZE;i++){
+    let row=true,col=true;
+    for(let j=0;j<SIZE;j++){
+      if(!grid[i*SIZE+j]) row=false;
+      if(!grid[j*SIZE+i]) col=false;
+    }
+    if(row){
+      for(let j=0;j<SIZE;j++) grid[i*SIZE+j]=null;
+      score+=100; cleared=true;
+    }
+    if(col){
+      for(let j=0;j<SIZE;j++) grid[j*SIZE+i]=null;
+      score+=100; cleared=true;
     }
   }
-  for(let c=0;c<10;c++){
-    let col=[];
-    for(let r=0;r<10;r++) col.push(r*10+c);
-    if(col.every(i=>grid[i])){
-      col.forEach(i=>clearCell(i));
-      score+=100;
+  if(cleared) updateScore();
+}
+
+function updateScore(){
+  document.getElementById("score").innerText=score;
+}
+
+/* =====================================================
+   GAME OVER
+===================================================== */
+function hasMove(){
+  for(let p of pieces){
+    for(let y=0;y<SIZE;y++){
+      for(let x=0;x<SIZE;x++){
+        if(canPlace(p.shape,x,y)) return true;
+      }
     }
   }
-  scoreText.innerText=score;
+  return false;
 }
 
-function clearCell(i){
-  grid[i]=null;
-  board.children[i].style.background="#111a33";
-  board.children[i].classList.remove("filled");
-}
+/* =====================================================
+   DRAG & DROP
+===================================================== */
+canvas.onpointerdown=e=>{
+  const mx=e.offsetX,my=e.offsetY;
+  pieces.forEach(p=>{
+    p.shape.forEach((r,ry)=>{
+      r.forEach((v,rx)=>{
+        if(v){
+          let x=p.x+rx*CELL, y=p.y+ry*CELL;
+          if(mx>x&&mx<x+CELL&&my>y&&my<y+CELL){
+            dragging=p;
+            offX=mx-p.x;
+            offY=my-p.y;
+          }
+        }
+      });
+    });
+  });
+};
 
-/* ===== START ===== */
-createShapes();
+canvas.onpointermove=e=>{
+  if(!dragging) return;
+  dragging.x=e.offsetX-offX;
+  dragging.y=e.offsetY-offY;
+
+  let gx=Math.round(dragging.x/CELL);
+  let gy=Math.round(dragging.y/CELL);
+  let cells=canPlace(dragging.shape,gx,gy);
+  ghost = cells ? {cells,color:dragging.color}:null;
+};
+
+canvas.onpointerup=e=>{
+  if(!dragging) return;
+  let gx=Math.round(dragging.x/CELL);
+  let gy=Math.round(dragging.y/CELL);
+  let cells=canPlace(dragging.shape,gx,gy);
+
+  if(cells){
+    placePiece(dragging,cells);
+    pieces = pieces.filter(p=>p!==dragging);
+    if(pieces.length===0) newPieces();
+    if(!hasMove()){
+      setTimeout(()=>alert("Game Over!\nScore: "+score),100);
+    }
+  }
+  dragging=null;
+  ghost=null;
+};
+
+/* =====================================================
+   LOOP
+===================================================== */
+newPieces();
+function loop(){
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
 </script>
 
 </body>
