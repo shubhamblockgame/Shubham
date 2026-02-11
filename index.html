@@ -6,65 +6,141 @@
 <title>SHUBHAM BLOCK</title>
 
 <style>
-*{box-sizing:border-box;user-select:none;-webkit-user-select:none;touch-action:none}
-body{
-  margin:0;min-height:100dvh;
-  background:radial-gradient(circle at top,#3b6cff,#14235c 70%);
-  font-family:system-ui,sans-serif;
-  display:flex;justify-content:center;align-items:flex-start;color:#fff
+*{
+  box-sizing:border-box;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:none;
 }
-#app{width:100%;max-width:420px;padding:16px;text-align:center}
-#title{font-size:26px;font-weight:800;color:#ffcc33;text-shadow:0 0 12px #ffcc3390}
-#score{font-size:42px;font-weight:900;margin:6px 0 12px}
+
+body{
+  margin:0;
+  font-family:system-ui, sans-serif;
+  background:radial-gradient(circle at top,#3f6bff,#0f1f5a 70%);
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  min-height:100dvh;
+  color:white;
+}
+
+#app{
+  width:100%;
+  max-width:420px;
+  padding:16px;
+  text-align:center;
+}
+
+#top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+#title{
+  font-size:22px;
+  font-weight:800;
+  color:#ffd54a;
+  text-shadow:0 0 12px rgba(255,213,74,.7);
+}
+
+#score{
+  font-size:40px;
+  font-weight:900;
+  margin:8px 0 14px;
+}
 
 #board{
-  width:75vw;max-width:340px;aspect-ratio:1/1;
-  margin:0 auto;
+  width:75vw;
+  max-width:360px;
+  aspect-ratio:1/1;
+  margin:auto;
   background:#0f1d3f;
-  padding:8px;border-radius:18px;
-  display:grid;grid-template-columns:repeat(10,1fr);
-  gap:4px;box-shadow:0 12px 30px rgba(0,0,0,.5)
+  padding:8px;
+  border-radius:18px;
+  display:grid;
+  grid-template-columns:repeat(10,1fr);
+  gap:4px;
+  box-shadow:0 15px 40px rgba(0,0,0,.6);
 }
-.cell{background:#1c2d66;border-radius:6px}
+
+.cell{
+  background:#1a2f6a;
+  border-radius:6px;
+}
+
 .filled{
-  background:linear-gradient(#ff9b3a,#ff5f00);
-  box-shadow:inset 0 2px 2px rgba(255,255,255,.4),
-             inset 0 -2px 4px rgba(0,0,0,.4)
+  background:linear-gradient(#ff9a3d,#ff6a00);
+  box-shadow:
+    inset 0 3px 4px rgba(255,255,255,.4),
+    inset 0 -4px 6px rgba(0,0,0,.4);
 }
-.ghost{background:#ffffff30}
 
-#tray{margin-top:18px;display:flex;justify-content:space-between;gap:10px}
-.shape{display:grid;gap:4px}
+.ghost{
+  background:rgba(255,255,255,.25);
+}
+
+#tray{
+  margin-top:18px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.shape{
+  display:grid;
+  gap:4px;
+}
+
 .block{
-  width:26px;height:26px;border-radius:6px;
-  background:linear-gradient(#caa8ff,#7c4dff)
-}
-.dragging{
-  position:fixed;pointer-events:none;z-index:9999;
-  transform:scale(1.08);
-  filter:drop-shadow(0 12px 20px rgba(0,0,0,.6))
+  width:28px;
+  height:28px;
+  border-radius:6px;
+  background:linear-gradient(#cba6ff,#7a4cff);
 }
 
-#topBar{display:flex;justify-content:space-between;align-items:center}
-#settings{cursor:pointer}
+.dragging{
+  position:fixed;
+  pointer-events:none;
+  z-index:999;
+  transform:scale(1.1);
+  filter:drop-shadow(0 12px 20px rgba(0,0,0,.7));
+}
 
 #overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.65);
-  display:none;align-items:center;justify-content:center
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.7);
+  display:none;
+  align-items:center;
+  justify-content:center;
 }
+
 #overlayBox{
-  background:#1a2b66;padding:20px;border-radius:16px
+  background:#1a2b66;
+  padding:20px;
+  border-radius:14px;
+  text-align:center;
 }
-button{padding:10px 18px;border:none;border-radius:10px;font-size:16px}
+
+button{
+  padding:10px 18px;
+  border:none;
+  border-radius:8px;
+  font-weight:600;
+  cursor:pointer;
+}
 </style>
 </head>
 
 <body>
+
 <div id="app">
-  <div id="topBar">
+  <div id="top">
     <div id="title">SHUBHAM BLOCK</div>
-    <div id="settings">🔊</div>
+    <div id="soundToggle">🔊</div>
   </div>
+
   <div id="score">0</div>
   <div id="board"></div>
   <div id="tray"></div>
@@ -73,7 +149,7 @@ button{padding:10px 18px;border:none;border-radius:10px;font-size:16px}
 <div id="overlay">
   <div id="overlayBox">
     <h2>GAME OVER</h2>
-    <p id="final"></p>
+    <p id="finalScore"></p>
     <button onclick="restart()">REPLAY</button>
   </div>
 </div>
@@ -83,24 +159,23 @@ button{padding:10px 18px;border:none;border-radius:10px;font-size:16px}
 <audio id="blast" src="blast.mp3"></audio>
 
 <script>
-/* ---------- STATE ---------- */
-const SIZE=10;
-let board=[...Array(SIZE)].map(()=>Array(SIZE).fill(0));
-let score=0,hi=+localStorage.getItem("hi")||0;
-let soundOn=true;
+const SIZE = 10;
+let board = Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+let score = 0;
+let high = localStorage.getItem("high") || 0;
+let soundOn = true;
 
-const boardEl=document.getElementById("board");
-const trayEl=document.getElementById("tray");
-const scoreEl=document.getElementById("score");
-const overlay=document.getElementById("overlay");
-const final=document.getElementById("final");
+const boardEl = document.getElementById("board");
+const trayEl = document.getElementById("tray");
+const scoreEl = document.getElementById("score");
+const overlay = document.getElementById("overlay");
+const finalScore = document.getElementById("finalScore");
 
-const bgm=document.getElementById("bgm");
-const putS=document.getElementById("put");
-const blastS=document.getElementById("blast");
+const bgm = document.getElementById("bgm");
+const putS = document.getElementById("put");
+const blastS = document.getElementById("blast");
 
-/* ---------- SHAPES ---------- */
-const SHAPES=[
+const SHAPES = [
  [[1]],[[1,1]],[[1,1,1]],[[1],[1],[1]],
  [[1,1],[1,1]],
  [[1,0],[1,1]],[[0,1],[1,1]],
@@ -108,9 +183,12 @@ const SHAPES=[
  [[1,1,0],[0,1,1]],
  [[0,1,1],[1,1,0]]
 ];
-let trayShapes=[];
 
-/* ---------- RENDER ---------- */
+let trayShapes = [];
+let dragEl=null, dragShape=null, dragIndex=null;
+let px=0, py=0;
+
+/* RENDER GRID */
 function drawBoard(ghost=null){
   boardEl.innerHTML="";
   for(let r=0;r<SIZE;r++){
@@ -122,21 +200,9 @@ function drawBoard(ghost=null){
     }
   }
 }
-function renderTray(){
-  trayEl.innerHTML="";
-  trayShapes.forEach((s,i)=>{
-    const el=document.createElement("div");
-    el.className="shape";el.dataset.i=i;
-    el.style.gridTemplateColumns=`repeat(${s[0].length},26px)`;
-    s.forEach(r=>r.forEach(v=>{
-      const b=document.createElement("div");
-      b.className="block";if(!v)b.style.visibility="hidden";
-      el.appendChild(b);
-    }));
-    trayEl.appendChild(el);
-  });
-}
-function genTray(){
+
+/* TRAY */
+function generateTray(){
   trayShapes=[];
   for(let i=0;i<3;i++)
     trayShapes.push(JSON.parse(JSON.stringify(
@@ -145,85 +211,122 @@ function genTray(){
   renderTray();
 }
 
-/* ---------- DRAG ---------- */
-let dragEl=null,dragShape=null,dragIndex=null,px=0,py=0;
+function renderTray(){
+  trayEl.innerHTML="";
+  trayShapes.forEach((shape,i)=>{
+    const el=document.createElement("div");
+    el.className="shape";
+    el.dataset.i=i;
+    el.style.gridTemplateColumns=`repeat(${shape[0].length},28px)`;
+    shape.forEach(r=>r.forEach(v=>{
+      const b=document.createElement("div");
+      b.className="block";
+      if(!v) b.style.visibility="hidden";
+      el.appendChild(b);
+    }));
+    trayEl.appendChild(el);
+  });
+}
 
+/* DRAG */
 function startDrag(e,i){
-  dragShape=trayShapes[i];dragIndex=i;
+  dragShape = trayShapes[i];
+  dragIndex = i;
+
   dragEl=document.createElement("div");
   dragEl.className="dragging shape";
-  dragEl.style.gridTemplateColumns=`repeat(${dragShape[0].length},26px)`;
+  dragEl.style.gridTemplateColumns=`repeat(${dragShape[0].length},28px)`;
+
   dragShape.forEach(r=>r.forEach(v=>{
     const b=document.createElement("div");
-    b.className="block";if(!v)b.style.visibility="hidden";
+    b.className="block";
+    if(!v) b.style.visibility="hidden";
     dragEl.appendChild(b);
   }));
+
   document.body.appendChild(dragEl);
   updatePointer(e);
 }
-function updatePointer(e){px=e.clientX;py=e.clientY}
+
+function updatePointer(e){
+  px=e.clientX;
+  py=e.clientY;
+}
+
 function canPlace(shape,x,y){
   let ghost=[];
   for(let r=0;r<shape.length;r++)
     for(let c=0;c<shape[0].length;c++)
       if(shape[r][c]){
-        if(x+c<0||y+r<0||x+c>=SIZE||y+r>=SIZE||board[y+r][x+c])return null;
+        if(x+c<0||y+r<0||x+c>=SIZE||y+r>=SIZE||board[y+r][x+c]) return null;
         ghost.push([y+r,x+c]);
       }
   return ghost;
 }
-function endDrag(){
+
+function dropShape(){
   if(!dragEl) return;
   const rect=boardEl.getBoundingClientRect();
   const cell=rect.width/SIZE;
   const gx=Math.floor((px-rect.left)/cell);
   const gy=Math.floor((py-rect.top)/cell);
   const ghost=canPlace(dragShape,gx,gy);
+
   if(ghost){
     ghost.forEach(p=>board[p[0]][p[1]]=1);
     score+=10;
-    trayShapes.splice(dragIndex,1);
     if(soundOn) putS.play();
+    trayShapes.splice(dragIndex,1);
     clearLines();
-    if(trayShapes.length===0) genTray(); else renderTray();
+    if(trayShapes.length===0) generateTray(); else renderTray();
   }
-  dragEl.remove();dragEl=null;dragShape=null;
-  drawBoard();checkGameOver();
+
+  dragEl.remove();
+  dragEl=null;
+  drawBoard();
+  checkGameOver();
 }
 
-/* ---------- GAME LOGIC ---------- */
+/* LINE CLEAR */
 function clearLines(){
   let cleared=0;
+
   for(let i=0;i<SIZE;i++){
-    if(board[i].every(v=>v)){board[i].fill(0);cleared++;}
-    if(board.every(r=>r[i])){board.forEach(r=>r[i]=0);cleared++;}
+    if(board[i].every(v=>v)){
+      board[i].fill(0);
+      cleared++;
+    }
+    if(board.every(r=>r[i])){
+      board.forEach(r=>r[i]=0);
+      cleared++;
+    }
   }
+
   if(cleared){
-    score+=cleared*100;
+    score += cleared*100;
     if(soundOn) blastS.play();
   }
+
   scoreEl.textContent=score;
 }
+
+/* GAME OVER */
 function checkGameOver(){
   for(const s of trayShapes)
     for(let y=0;y<SIZE;y++)
       for(let x=0;x<SIZE;x++)
         if(canPlace(s,x,y)) return;
+
   overlay.style.display="flex";
-  final.textContent="Score: "+score;
-}
-function restart(){
-  board=[...Array(SIZE)].map(()=>Array(SIZE).fill(0));
-  score=0;scoreEl.textContent=0;
-  overlay.style.display="none";
-  genTray();drawBoard();
+  finalScore.textContent="Score: "+score;
 }
 
-/* ---------- LOOP ---------- */
+/* LOOP */
 function loop(){
   if(dragEl){
     dragEl.style.left=(px-dragEl.offsetWidth/2)+"px";
     dragEl.style.top=(py-dragEl.offsetHeight/2)+"px";
+
     const rect=boardEl.getBoundingClientRect();
     const cell=rect.width/SIZE;
     const gx=Math.floor((px-rect.left)/cell);
@@ -233,21 +336,36 @@ function loop(){
   requestAnimationFrame(loop);
 }
 
-/* ---------- EVENTS ---------- */
+/* EVENTS */
 trayEl.addEventListener("pointerdown",e=>{
   const el=e.target.closest(".shape");
-  if(el){bgm.play();startDrag(e,Number(el.dataset.i))}
+  if(el){
+    if(soundOn) bgm.play();
+    startDrag(e,Number(el.dataset.i));
+  }
 },{passive:false});
-window.addEventListener("pointermove",e=>dragEl&&updatePointer(e),{passive:false});
-window.addEventListener("pointerup",endDrag);
 
-document.getElementById("settings").onclick=()=>{
+window.addEventListener("pointermove",e=>dragEl&&updatePointer(e));
+window.addEventListener("pointerup",dropShape);
+
+document.getElementById("soundToggle").onclick=()=>{
   soundOn=!soundOn;
   if(!soundOn) bgm.pause();
 };
 
-/* ---------- INIT ---------- */
-drawBoard();genTray();loop();
+function restart(){
+  board=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+  score=0;
+  scoreEl.textContent=0;
+  overlay.style.display="none";
+  generateTray();
+  drawBoard();
+}
+
+/* INIT */
+generateTray();
+drawBoard();
+loop();
 </script>
 </body>
 </html>
